@@ -1,0 +1,28 @@
+/*
+Theme Name: New Mexico Cherokee Community
+Theme URI: https://github.com/webmaven/NMCC
+Author: Antigravity & NMCC
+Author URI: https://github.com/webmaven/NMCC
+Description: A modern, semantic, and highly configurable WordPress Block Theme built specifically for the New Mexico Cherokee Community. Features unified Noto Serif/Sans bilingual Cherokee Syllabary typography, locked-down Full Site Editing layouts for non-technical administrators, and a hybrid Facebook featured posts feed.
+Version: 1.0.0
+Requires at least: 6.2
+Tested up to: 6.5
+Requires PHP: 7.4
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: nmcc
+Tags: block-theme, one-column, custom-colors, custom-menu, custom-logo, editor-style, translation-ready, wide-blocks
+*/
+
+/* Custom styles for Cherokee elements in the frontend */
+.cherokee-syllabary {
+    font-family: "Noto Serif Cherokee", "Noto Sans Cherokee", serif, sans-serif;
+    color: var(--wp--preset--color--clay);
+    font-weight: 600;
+}
+
+.cherokee-translit {
+    font-family: "Noto Serif", "Noto Sans", serif, sans-serif;
+    font-style: italic;
+    color: var(--wp--preset--color--warm-charcoal-muted);
+}
