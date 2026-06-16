@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curator Studio — Cherokee Inspiration Mood Board</title>
+  
+  <!-- SEO & Description Meta -->
+  <meta name="description" content="A powerful, highly-interactive, and professional client-side mood board designed for exploring Cherokee visual language, colors, and art forms. Fully drag, scale, and layer arrange your design assets.">
+  <meta name="author" content="webmaven">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       APP HEADER (GLASSMORPHISM NAV BAR)
+       ========================================================================== -->
+  <header>
+    <div class="header-left">
+      <h1>Curator Studio</h1>
+      <span class="tag">Cherokee Inspiration</span>
+    </div>
+    
+    <div class="header-center">
+      <button id="btn-add-element" class="btn btn-primary" title="Add a new card to the canvas">
+        <span>➕</span> Add Design Element
+      </button>
+      <button id="btn-save" class="btn btn-secondary" onclick="commitBoardData()" title="Commit board layout back to gh-pages branch">
+        <span>💾</span> Save Changes
+      </button>
+    </div>
+    
+    <div class="header-right">
+      <div id="user-pill" class="user-pill" style="display: none;" onclick="logout()" title="Click to clear token / logout">
+        <div id="user-avatar" class="user-avatar">W</div>
+        <span id="user-name">webmaven</span>
+        <span style="font-size: 10px; color: var(--text-muted);">▼</span>
+      </div>
+      <button id="btn-login" class="btn btn-secondary" onclick="handleLoginClick()">
+        Login with GitHub
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       WORK CANVAS VIEWPORT (SCROLL PAN BOARD)
+       ========================================================================== -->
+  <main id="viewport" class="viewport">
+    <div id="board" class="board">
+      
+      <!-- Tiles are dynamically generated and injected here by app.js -->
+      
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       FLOATING HUD (COORDINATE & INSTRUCTION TRACKER)
+       ========================================================================== -->
+  <div class="canvas-hud">
+    <span id="hud-coords" class="hud-coordinates">X: 0px, Y: 0px</span>
+    <span style="color: var(--text-muted); font-size: 12px;">|</span>
+    <span style="font-size: 11px; color: var(--text-secondary);">Drag tiles to move. Drag corners to resize. Press Backspace to delete. Hold and drag background to scroll-pan.</span>
+  </div>
+
+  <!-- ==========================================================================
+       TOAST NOTIFICATION CONTAINER
+       ========================================================================== -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ==========================================================================
+       MODAL: ADD NEW DESIGN ELEMENT
+       ========================================================================== -->
+  <div id="modal-add" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Add Design Element</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      
+      <!-- Asset Type Tabs -->
+      <div class="type-selector">
+        <div class="type-tab active" data-type="color">🎨 Color Swatch</div>
+        <div class="type-tab" data-type="image">🖼️ Image Asset</div>
+        <div class="type-tab" data-type="text">📝 Rich Text</div>
+        <div class="type-tab" data-type="motif">✨ Motif Vector</div>
+      </div>
+      
+      <!-- Shared Form Details -->
+      <div class="form-group">
+        <label for="element-title">Card / Element Title</label>
+        <input type="text" id="element-title" class="form-control" placeholder="e.g., Bloodroot Red, Clan Star, Basket Image">
+      </div>
+      
+      <!-- 1. COLOR SWATCH FORM SECTION -->
+      <div id="sec-color" class="form-section">
+        <div class="form-group">
+          <label for="color-picker-val">Select Color Color</label>
+          <input type="color" id="color-picker-val" class="form-control" value="#C84B31" style="height: 50px; padding: 4px; cursor: pointer;">
+        </div>
+        <div class="form-group">
+          <label for="color-desc">Short Cultural Context / Description</label>
+          <textarea id="color-desc" class="form-control" rows="3" placeholder="Explain the meaning or source of this color swatch..."></textarea>
+        </div>
+      </div>
+      
+      <!-- 2. IMAGE ASSET FORM SECTION -->
+      <div id="sec-image" class="form-section" style="display: none;">
+        <div class="form-group">
+          <label>Upload Local Image (Recommended)</label>
+          <div id="upload-zone" class="file-upload-zone">
+            <span>Drag and drop or Click to upload (under 2MB)</span>
+            <input type="file" id="image-file" accept="image/*" style="display: none;">
+          </div>
+        </div>
+        <div style="text-align: center; margin-bottom: 15px; color: var(--text-muted); font-size: 11px;">— OR PASTE LINK —</div>
+        <div class="form-group">
+          <label for="image-url">Image web URL / Data URL</label>
+          <input type="url" id="image-url" class="form-control" placeholder="https://example.com/image.jpg">
+        </div>
+        <div class="form-group">
+          <label for="image-desc">Alt text / Description / History</label>
+          <textarea id="image-desc" class="form-control" rows="3" placeholder="Context details about this image..."></textarea>
+        </div>
+      </div>
+      
+      <!-- 3. RICH TEXT CARD FORM SECTION -->
+      <div id="sec-text" class="form-section" style="display: none;">
+        <div class="form-group">
+          <label for="text-body">Body Content (supports basic Markdown, lists, headers)</label>
+          <textarea id="text-body" class="form-control" rows="6" placeholder="Use ### for header3, **bold** for emphasis, or standard paragraphs..."></textarea>
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="text-bg">Card Background</label>
+            <input type="color" id="text-bg" class="form-control" value="#1e222b" style="padding: 4px; height: 40px; cursor: pointer;">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="text-color">Font Color</label>
+            <input type="color" id="text-color" class="form-control" value="#f8f9fa" style="padding: 4px; height: 40px; cursor: pointer;">
+          </div>
+        </div>
+      </div>
+      
+      <!-- 4. MOTIF VECTOR FORM SECTION -->
+      <div id="sec-motif" class="form-section" style="display: none;">
+        <div class="form-group">
+          <label for="motif-select">Select Symbolic Motif</label>
+          <select id="motif-select" class="form-control" style="cursor: pointer;">
+            <option value="star">Seven-Pointed Cherokee Clan Star</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="motif-desc">Significance Description</label>
+          <textarea id="motif-desc" class="form-control" rows="4" placeholder="Explain the historical meaning or application of this geometric motif..."></textarea>
+        </div>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-primary" onclick="submitNewElement()">Place on Board</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: GITHUB REST API AUTHENTICATION
+       ========================================================================== -->
+  <div id="modal-auth" class="modal-overlay">
+    <div class="modal" style="max-width: 460px;">
+      <div class="modal-header">
+        <h2>GitHub Authentication</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      
+      <div class="help-box">
+        <strong>How to create a secure Personal Access Token (PAT):</strong><br>
+        1. Go to your <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer">GitHub Fine-grained PAT Settings</a>.<br>
+        2. Set repository access to: <strong>Only select repositories</strong> &rarr; <strong>NMCC</strong>.<br>
+        3. Under Permissions, select <strong>Repository permissions</strong> &rarr; <strong>Contents</strong> &rarr; change access to <strong>Read and Write</strong>.<br>
+        4. Generate the token, paste it below, and click verify. It is kept secure inside local storage.
+      </div>
+      
+      <div class="form-group">
+        <label for="pat-token">Personal Access Token (PAT)</label>
+        <input type="password" id="pat-token" class="form-control" placeholder="github_pat_...">
+      </div>
+      
+      <div class="modal-footer" style="margin-top: 15px;">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-primary" onclick="verifyAndSaveToken()">Verify & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JS File -->
+  <script src="app.js" defer></script>
+</body>
+</html>
