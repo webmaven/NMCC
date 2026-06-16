@@ -907,7 +907,11 @@ async function verifyAndSaveToken() {
     closeAllModals();
   } catch (error) {
     console.error('Auth verification error:', error);
-    showToast('Failed to authenticate token. Please check validity and permissions.', 'error');
+    if (error.message && error.message.includes('Failed to fetch')) {
+      showToast('Failed to connect: GitHub API request blocked. Please check your internet connection or disable ad-blockers/Brave Shields.', 'error', 8000);
+    } else {
+      showToast('Failed to authenticate token. Please check validity and permissions.', 'error');
+    }
   }
 }
 
@@ -986,7 +990,11 @@ async function commitBoardData() {
     showToast('Saved directly to gh-pages! Rebuilding site in background (takes ~30-60s).', 'success', 6000);
   } catch (error) {
     console.error('Error committing data to branch:', error);
-    showToast(`Failed to save: ${error.message}`, 'error', 6000);
+    if (error.message && error.message.includes('Failed to fetch')) {
+      showToast('Failed to save: Browser blocked network request (Failed to fetch). If you use Brave or have an ad-blocker (like uBlock), please disable shields/ad-blocker for this site and try again, or use "Export Backup" to save your files locally.', 'error', 12000);
+    } else {
+      showToast(`Failed to save: ${error.message}`, 'error', 6000);
+    }
   } finally {
     btnSave.textContent = 'Save Changes';
     btnSave.classList.remove('saving');
@@ -1268,4 +1276,27 @@ function calculateAlignmentSnapping(candidateLeft, candidateTop, width, height) 
     snappedY: snappedYApplied
   };
 }
+
+// ==========================================================================
+// FALLBACK CLIENT-SIDE EXPORT/DOWNLOAD OF BOARD STATE
+// ==========================================================================
+function downloadBackupJSON() {
+  try {
+    const jsonContent = JSON.stringify(boardData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'moodboard-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Mood board JSON exported to downloads successfully!', 'success');
+  } catch (error) {
+    console.error('Error exporting JSON:', error);
+    showToast(`Failed to export: ${error.message}`, 'error');
+  }
+}
+
 
