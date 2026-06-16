@@ -27,6 +27,17 @@
       <button id="btn-add-element" class="btn btn-primary" title="Add a new card to the canvas">
         <span>➕</span> Add Design Element
       </button>
+      
+      <!-- Undo / Redo Button Group -->
+      <div class="btn-group">
+        <button id="btn-undo" class="btn" onclick="undo()" title="Undo (Cmd+Z or Ctrl+Z)" disabled>
+          <span>↩️</span> Undo
+        </button>
+        <button id="btn-redo" class="btn" onclick="redo()" title="Redo (Cmd+Shift+Z or Ctrl+Shift+Z)" disabled>
+          <span>↪️</span> Redo
+        </button>
+      </div>
+
       <button id="btn-save" class="btn btn-secondary" onclick="commitBoardData()" title="Commit board layout back to gh-pages branch">
         <span>💾</span> Save Changes
       </button>

@@ -7,6 +7,10 @@
 // STATE MANAGEMENT & CONSTANTS
 // ==========================================================================
 let boardData = { assets: [] };
+let undoStack = [];
+let redoStack = [];
+let lastSavedState = '';
+let dragStartSnapshot = null;
 let selectedTileId = null;
 let isDirty = false;
 let isDragging = false;
@@ -52,16 +56,37 @@ document.addEventListener('DOMContentLoaded', () => {
   setupModalControls();
   checkSavedAuth();
   
-  // Keyboard listeners for delete and escape
+  // Keyboard listeners for interactions, delete, escape, and undo/redo
   document.addEventListener('keydown', (e) => {
+    const isEditingText = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
+    
     if (e.key === 'Escape') {
       deselectAll();
       closeAllModals();
     }
+    
     if ((e.key === 'Delete' || e.key === 'Backspace') && selectedTileId) {
       // Don't trigger if user is typing in an input
-      if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      if (!isEditingText) {
         deleteTile(selectedTileId);
+      }
+    }
+
+    // Undo / Redo Shortcuts (Bypass when editing text inputs to preserve native field history)
+    if (!isEditingText) {
+      const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+      
+      // Undo: Cmd+Z or Ctrl+Z
+      if (isCmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      
+      // Redo: Cmd+Shift+Z, Ctrl+Shift+Z, Cmd+Y, or Ctrl+Y
+      const isRedoKey = (e.shiftKey && e.key.toLowerCase() === 'z') || e.key.toLowerCase() === 'y';
+      if (isCmdOrCtrl && isRedoKey) {
+        e.preventDefault();
+        redo();
       }
     }
   });
@@ -103,12 +128,26 @@ async function loadBoardData() {
     if (!response.ok) throw new Error('Data file not found or corrupted.');
     
     boardData = await response.json();
+    
+    // Initialize history baseline
+    lastSavedState = JSON.stringify(boardData);
+    undoStack = [];
+    redoStack = [];
+    updateUndoRedoButtons();
+    
     renderBoard();
     showToast('Inspiration board loaded successfully!', 'success', 2500);
   } catch (error) {
     console.error('Error loading board data:', error);
     showToast('Failed to load board from gh-pages. Loading empty fallback.', 'error', 4000);
     boardData = { assets: [] };
+    
+    // Initialize empty history baseline
+    lastSavedState = JSON.stringify(boardData);
+    undoStack = [];
+    redoStack = [];
+    updateUndoRedoButtons();
+    
     renderBoard();
   }
 }
@@ -331,6 +370,9 @@ function startInteraction(e, assetId, tileElement) {
   activeTile = tileElement;
   tileElement.classList.add('selected');
   
+  // Capture snapshot for history undo before modification
+  dragStartSnapshot = JSON.stringify(boardData);
+  
   const clientX = e.clientX || (e.touches && e.touches[0].clientX);
   const clientY = e.clientY || (e.touches && e.touches[0].clientY);
   
@@ -371,11 +413,19 @@ function endInteraction() {
     if (index !== -1) {
       const asset = boardData.assets[index];
       if (asset.x !== finalLeft || asset.y !== finalTop || asset.width !== finalWidth || asset.height !== finalHeight) {
+        // A real modification occurred! Save to history stack first
+        if (dragStartSnapshot) {
+          undoStack.push(dragStartSnapshot);
+          redoStack = [];
+          updateUndoRedoButtons();
+        }
+        
         asset.x = finalLeft;
         asset.y = finalTop;
         asset.width = finalWidth;
         asset.height = finalHeight;
-        markAsUnsaved();
+        
+        checkDirtyState();
       }
     }
   }
@@ -410,6 +460,11 @@ function changeLayer(id, action) {
   const index = boardData.assets.findIndex(a => a.id === id);
   if (index === -1) return;
   
+  // Push state to undoStack before modifying
+  undoStack.push(JSON.stringify(boardData));
+  redoStack = [];
+  updateUndoRedoButtons();
+  
   const currentZ = boardData.assets[index].z || 1;
   const zs = boardData.assets.map(a => a.z || 0);
   const minZ = Math.min(...zs, 1);
@@ -421,7 +476,7 @@ function changeLayer(id, action) {
     boardData.assets[index].z = Math.max(1, minZ - 1);
   }
   
-  markAsUnsaved();
+  checkDirtyState();
   // Sort elements in DOM or re-render to reflect new ordering
   renderBoard();
   
@@ -438,10 +493,15 @@ function deleteTile(id) {
   const confirmDelete = confirm('Are you sure you want to delete this asset from the mood board?');
   if (!confirmDelete) return;
   
+  // Push state to undoStack before modifying
+  undoStack.push(JSON.stringify(boardData));
+  redoStack = [];
+  updateUndoRedoButtons();
+  
   boardData.assets = boardData.assets.filter(a => a.id !== id);
   deselectAll();
   renderBoard();
-  markAsUnsaved();
+  checkDirtyState();
   showToast('Asset removed from canvas.', 'info');
 }
 
@@ -568,10 +628,15 @@ function submitNewElement() {
     newAsset.height = 280;
   }
   
+  // Push state to undoStack before modifying
+  undoStack.push(JSON.stringify(boardData));
+  redoStack = [];
+  updateUndoRedoButtons();
+  
   // Push & Save state
   boardData.assets.push(newAsset);
   createTileDOM(newAsset);
-  markAsUnsaved();
+  checkDirtyState();
   
   // Clear inputs & close
   titleInput.value = '';
@@ -708,7 +773,9 @@ async function commitBoardData() {
       throw new Error(errorDetail.message || 'Commit request rejected by GitHub.');
     }
     
+    lastSavedState = JSON.stringify(boardData);
     markAsSaved();
+    updateUndoRedoButtons();
     showToast('Saved directly to gh-pages! Rebuilding site in background (takes ~30-60s).', 'success', 6000);
   } catch (error) {
     console.error('Error committing data to branch:', error);
@@ -718,3 +785,59 @@ async function commitBoardData() {
     btnSave.classList.remove('saving');
   }
 }
+
+// ==========================================================================
+// UNDO / REDO HISTORY ENGINE
+// ==========================================================================
+function undo() {
+  if (undoStack.length === 0) return;
+  
+  // Push current state to redoStack
+  redoStack.push(JSON.stringify(boardData));
+  
+  // Restore previous state
+  boardData = JSON.parse(undoStack.pop());
+  
+  deselectAll();
+  renderBoard();
+  updateUndoRedoButtons();
+  checkDirtyState();
+  showToast('Undo action', 'info', 1000);
+}
+
+function redo() {
+  if (redoStack.length === 0) return;
+  
+  // Push current state to undoStack
+  undoStack.push(JSON.stringify(boardData));
+  
+  // Restore next state
+  boardData = JSON.parse(redoStack.pop());
+  
+  deselectAll();
+  renderBoard();
+  updateUndoRedoButtons();
+  checkDirtyState();
+  showToast('Redo action', 'info', 1000);
+}
+
+function updateUndoRedoButtons() {
+  const btnUndo = document.getElementById('btn-undo');
+  const btnRedo = document.getElementById('btn-redo');
+  if (btnUndo) {
+    btnUndo.disabled = undoStack.length === 0;
+  }
+  if (btnRedo) {
+    btnRedo.disabled = redoStack.length === 0;
+  }
+}
+
+function checkDirtyState() {
+  const currentStateStr = JSON.stringify(boardData);
+  if (currentStateStr === lastSavedState) {
+    markAsSaved();
+  } else {
+    markAsUnsaved();
+  }
+}
+
