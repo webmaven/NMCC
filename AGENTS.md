@@ -70,6 +70,26 @@ let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, startLeft + dx
 let newTop = Math.max(0, Math.min(2400 - activeTile.offsetHeight, startTop + dy));
 ```
 
+### 4. Grid Snapping Math
+When Grid Snapping is active, candidate coordinates are rounded to the nearest multiple of the grid unit (`20px`):
+
+$$Left_{\text{grid}} = \text{round}\left(\frac{Left_{\text{candidate}}}{20}\right) \times 20$$
+
+$$Top_{\text{grid}} = \text{round}\left(\frac{Top_{\text{candidate}}}{20}\right) \times 20$$
+
+### 5. Alignment Snapping (Smart Guides) Math
+When Smart Alignment is active, the candidate box edges and midpoints of the active tile are compared against *nearby* rendered tiles $a \in \text{boardData.assets}$ to prevent visual clutter:
+- **Proximity Filter:** Only tiles whose centers are within $800\text{px}$ horizontally and vertically of the active tile's center are evaluated:
+  \[\text{abs}(Center X_{\text{active}} - Center X_{\text{target}}) < 800\text{px} \quad \text{and} \quad \text{abs}(Center Y_{\text{active}} - Center Y_{\text{target}}) < 800\text{px}\]
+- **Active Points of Interest:**
+  - Horizontal: $X_{\text{left}} = Left$, $X_{\text{center}} = Left + \frac{Width}{2}$, $X_{\text{right}} = Left + Width$
+  - Vertical: $Y_{\text{top}} = Top$, $Y_{\text{middle}} = Top + \frac{Height}{2}$, $Y_{\text{bottom}} = Top + Height$
+- **Target Points of Interest:**
+  - Horizontal: $X_{\text{t,left}} = a.x$, $X_{\text{t,center}} = a.x + \frac{a.width}{2}$, $X_{\text{t,right}} = a.x + a.width$
+  - Vertical: $Y_{\text{t,top}} = a.y$, $Y_{\text{t,middle}} = a.y + \frac{a.height}{2}$, $Y_{\text{t,bottom}} = a.y + a.height$
+
+If the absolute difference is within the threshold ($8\text{px}$), the position is snapped to align, and a guide line (`.smart-guide-v` or `.smart-guide-h`) is appended directly to `#board` at the matched target coordinate. Alignment snapping takes precedence over grid snapping.
+
 ---
 
 ## 🖱️ Gesture & Keyboard Normalization

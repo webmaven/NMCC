@@ -23,6 +23,10 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3.0;
 let editingAssetId = null;
 
+// Snapping Globals
+let snapToGridActive = true;
+let snapToAlignActive = true;
+
 // Dragging & Resizing Math
 let startX, startY;
 let startLeft, startTop;
@@ -221,9 +225,36 @@ function parseMarkdown(text) {
 
 // Generate the beautiful SVG Seven-pointed star motif
 function getSevenPointedStarSVG() {
+  const cx = 50;
+  const cy = 50;
+  const R = 45; // Outer radius
+  const r = 18; // Inner radius - r = 18 balances the peak-to-valley ratio perfectly
+  const numPoints = 7;
+  let pathData = '';
+  
+  for (let i = 0; i < numPoints; i++) {
+    // Outer point (peak)
+    const angleOuter = -Math.PI / 2 + (i * 2 * Math.PI) / numPoints;
+    const xOuter = cx + R * Math.cos(angleOuter);
+    const yOuter = cy + R * Math.sin(angleOuter);
+    
+    // Inner point (valley)
+    const angleInner = -Math.PI / 2 + ((i + 0.5) * 2 * Math.PI) / numPoints;
+    const xInner = cx + r * Math.cos(angleInner);
+    const yInner = cy + r * Math.sin(angleInner);
+    
+    if (i === 0) {
+      pathData += `M ${xOuter.toFixed(2)} ${yOuter.toFixed(2)} `;
+    } else {
+      pathData += `L ${xOuter.toFixed(2)} ${yOuter.toFixed(2)} `;
+    }
+    pathData += `L ${xInner.toFixed(2)} ${yInner.toFixed(2)} `;
+  }
+  pathData += 'Z';
+  
   return `
     <svg class="tile-motif-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M50 5 L59 36 L90 24 L72 50 L90 76 L59 64 L50 95 L41 64 L10 76 L28 50 L10 24 L41 36 Z" 
+      <path d="${pathData}" 
             fill="currentColor" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-linejoin="round"/>
       <circle cx="50" cy="50" r="12" fill="#0f1115" stroke="currentColor" stroke-width="2"/>
     </svg>
@@ -323,6 +354,40 @@ function getTileBodyContent(asset) {
 // DRAG, RESIZE, PAN INTERACTION MECHANICS
 // ==========================================================================
 function setupCanvasControls() {
+  // Initialize Snapping Settings from DOM/LocalStorage
+  const chkGrid = document.getElementById('chk-snap-grid');
+  const chkAlign = document.getElementById('chk-snap-align');
+  
+  if (chkGrid) {
+    const savedGrid = localStorage.getItem('snapToGridActive');
+    if (savedGrid !== null) {
+      snapToGridActive = savedGrid === 'true';
+      chkGrid.checked = snapToGridActive;
+    } else {
+      snapToGridActive = chkGrid.checked;
+    }
+    chkGrid.addEventListener('change', (e) => {
+      snapToGridActive = e.target.checked;
+      localStorage.setItem('snapToGridActive', snapToGridActive);
+      showToast(snapToGridActive ? 'Snap to Grid enabled' : 'Snap to Grid disabled', 'info', 1500);
+    });
+  }
+  
+  if (chkAlign) {
+    const savedAlign = localStorage.getItem('snapToAlignActive');
+    if (savedAlign !== null) {
+      snapToAlignActive = savedAlign === 'true';
+      chkAlign.checked = snapToAlignActive;
+    } else {
+      snapToAlignActive = chkAlign.checked;
+    }
+    chkAlign.addEventListener('change', (e) => {
+      snapToAlignActive = e.target.checked;
+      localStorage.setItem('snapToAlignActive', snapToAlignActive);
+      showToast(snapToAlignActive ? 'Smart Guides enabled' : 'Smart Guides disabled', 'info', 1500);
+    });
+  }
+
   // Deselect when clicking canvas background
   viewport.addEventListener('mousedown', (e) => {
     if (e.target === viewport || e.target === board) {
@@ -340,37 +405,64 @@ function setupCanvasControls() {
   
   // Track mouse coordinates on status HUD
   const hudCoords = document.getElementById('hud-coords');
-  viewport.addEventListener('mousemove', (e) => {
+  const handleMove = (e) => {
+    const clientX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY);
+    
+    // Fallback if no coordinates available
+    if (clientX === undefined || clientY === undefined) return;
+    
     const rect = board.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
+    const x = Math.round(clientX - rect.left);
+    const y = Math.round(clientY - rect.top);
     if (x >= 0 && x <= 3200 && y >= 0 && y <= 2400) {
       hudCoords.textContent = `X: ${x}px, Y: ${y}px`;
     }
     
     // Perform actions depending on active state
     if (isPanning) {
-      const pageX = e.pageX - viewport.offsetLeft;
-      const pageY = e.pageY - viewport.offsetTop;
+      const pageX = (e.pageX || (e.touches && e.touches[0] && e.touches[0].pageX)) - viewport.offsetLeft;
+      const pageY = (e.pageY || (e.touches && e.touches[0] && e.touches[0].pageY)) - viewport.offsetTop;
       const walkX = (pageX - panStartX) * 1.5; // Scroll speed modifier
       const walkY = (pageY - panStartY) * 1.5;
       viewport.scrollLeft = panScrollLeft - walkX;
       viewport.scrollTop = panScrollTop - walkY;
     } else if (isDragging && activeTile) {
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
       const dx = (clientX - startX) / zoom;
       const dy = (clientY - startY) / zoom;
       
+      clearSmartGuides();
+      
+      let candidateLeft = startLeft + dx;
+      let candidateTop = startTop + dy;
+      
+      let snappedXApplied = false;
+      let snappedYApplied = false;
+      
+      if (snapToAlignActive) {
+        const snapped = calculateAlignmentSnapping(candidateLeft, candidateTop, activeTile.offsetWidth, activeTile.offsetHeight);
+        candidateLeft = snapped.x;
+        candidateTop = snapped.y;
+        snappedXApplied = snapped.snappedX;
+        snappedYApplied = snapped.snappedY;
+      }
+      
+      if (snapToGridActive) {
+        if (!snappedXApplied) {
+          candidateLeft = Math.round(candidateLeft / 20) * 20;
+        }
+        if (!snappedYApplied) {
+          candidateTop = Math.round(candidateTop / 20) * 20;
+        }
+      }
+      
       // Calculate and clamp coordinates to keep them inside the large board
-      let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, startLeft + dx));
-      let newTop = Math.max(0, Math.min(2400 - activeTile.offsetHeight, startTop + dy));
+      let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, candidateLeft));
+      let newTop = Math.max(0, Math.min(2400 - activeTile.offsetHeight, candidateTop));
       
       activeTile.style.left = `${newLeft}px`;
       activeTile.style.top = `${newTop}px`;
     } else if (isResizing && activeTile) {
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
       const dx = (clientX - startX) / zoom;
       const dy = (clientY - startY) / zoom;
       
@@ -381,7 +473,15 @@ function setupCanvasControls() {
       activeTile.style.width = `${newWidth}px`;
       activeTile.style.height = `${newHeight}px`;
     }
-  });
+  };
+  
+  viewport.addEventListener('mousemove', handleMove);
+  viewport.addEventListener('touchmove', (e) => {
+    if (isDragging || isResizing) {
+      if (e.cancelable) e.preventDefault();
+    }
+    handleMove(e);
+  }, { passive: false });
 
   // End interaction
   window.addEventListener('mouseup', () => endInteraction());
@@ -434,6 +534,7 @@ function startInteraction(e, assetId, tileElement) {
 }
 
 function endInteraction() {
+  clearSmartGuides();
   if (isPanning) {
     isPanning = false;
     viewport.style.cursor = 'grab';
@@ -1031,5 +1132,140 @@ function editTile(id) {
   }
   
   openModal(modalAdd);
+}
+
+// ==========================================================================
+// DYNAMIC SMART ALIGNMENT GUIDES & GRID SNAPPING ENGINE
+// ==========================================================================
+function clearSmartGuides() {
+  const guides = board.querySelectorAll('.smart-guide-v, .smart-guide-h');
+  guides.forEach(g => g.remove());
+}
+
+function drawSmartGuide(orientation, position) {
+  const guide = document.createElement('div');
+  if (orientation === 'v') {
+    guide.className = 'smart-guide-v';
+    guide.style.left = `${position}px`;
+  } else {
+    guide.className = 'smart-guide-h';
+    guide.style.top = `${position}px`;
+  }
+  board.appendChild(guide);
+}
+
+function calculateAlignmentSnapping(candidateLeft, candidateTop, width, height) {
+  let snappedX = candidateLeft;
+  let snappedY = candidateTop;
+  let snappedXApplied = false;
+  let snappedYApplied = false;
+  
+  const threshold = 8; // threshold in pixels
+  
+  // Compare against all other assets currently rendered that are "nearby" (within 800px center-to-center)
+  const activeCenterX = candidateLeft + width / 2;
+  const activeCenterY = candidateTop + height / 2;
+  
+  const otherAssets = boardData.assets.filter(a => {
+    if (a.id === selectedTileId) return false;
+    const targetCenterX = a.x + a.width / 2;
+    const targetCenterY = a.y + a.height / 2;
+    return Math.abs(activeCenterX - targetCenterX) < 800 && Math.abs(activeCenterY - targetCenterY) < 800;
+  });
+  
+  let minDiffX = threshold + 1;
+  let bestXLine = null;
+  
+  let minDiffY = threshold + 1;
+  let bestYLine = null;
+  
+  // Horizontal alignments (X-axis, determines Left coordinate, draws Vertical guide lines)
+  const activeLeft = candidateLeft;
+  const activeRight = candidateLeft + width;
+  
+  for (const a of otherAssets) {
+    const targetLeft = a.x;
+    const targetCenterX = a.x + a.width / 2;
+    const targetRight = a.x + a.width;
+    
+    // Combinations:
+    // 1. Active Left aligns with Target Left, Center, Right
+    // 2. Active Center aligns with Target Left, Center, Right
+    // 3. Active Right aligns with Target Left, Center, Right
+    const opts = [
+      { diff: Math.abs(activeLeft - targetLeft), snap: targetLeft, line: targetLeft },
+      { diff: Math.abs(activeLeft - targetCenterX), snap: targetCenterX, line: targetCenterX },
+      { diff: Math.abs(activeLeft - targetRight), snap: targetRight, line: targetRight },
+      
+      { diff: Math.abs(activeCenterX - targetLeft), snap: targetLeft - width / 2, line: targetLeft },
+      { diff: Math.abs(activeCenterX - targetCenterX), snap: targetCenterX - width / 2, line: targetCenterX },
+      { diff: Math.abs(activeCenterX - targetRight), snap: targetRight - width / 2, line: targetRight },
+      
+      { diff: Math.abs(activeRight - targetLeft), snap: targetLeft - width, line: targetLeft },
+      { diff: Math.abs(activeRight - targetCenterX), snap: targetCenterX - width, line: targetCenterX },
+      { diff: Math.abs(activeRight - targetRight), snap: targetRight - width, line: targetRight }
+    ];
+    
+    for (const opt of opts) {
+      if (opt.diff < minDiffX) {
+        minDiffX = opt.diff;
+        snappedX = opt.snap;
+        bestXLine = opt.line;
+        snappedXApplied = true;
+      }
+    }
+  }
+  
+  // Vertical alignments (Y-axis, determines Top coordinate, draws Horizontal guide lines)
+  const activeTop = candidateTop;
+  const activeBottom = candidateTop + height;
+  
+  for (const a of otherAssets) {
+    const targetTop = a.y;
+    const targetCenterY = a.y + a.height / 2;
+    const targetBottom = a.y + a.height;
+    
+    // Combinations:
+    // 1. Active Top aligns with Target Top, Middle, Bottom
+    // 2. Active Middle aligns with Target Top, Middle, Bottom
+    // 3. Active Bottom aligns with Target Top, Middle, Bottom
+    const opts = [
+      { diff: Math.abs(activeTop - targetTop), snap: targetTop, line: targetTop },
+      { diff: Math.abs(activeTop - targetCenterY), snap: targetCenterY, line: targetCenterY },
+      { diff: Math.abs(activeTop - targetBottom), snap: targetBottom, line: targetBottom },
+      
+      { diff: Math.abs(activeCenterY - targetTop), snap: targetTop - height / 2, line: targetTop },
+      { diff: Math.abs(activeCenterY - targetCenterY), snap: targetCenterY - height / 2, line: targetCenterY },
+      { diff: Math.abs(activeCenterY - targetBottom), snap: targetBottom - height / 2, line: targetBottom },
+      
+      { diff: Math.abs(activeBottom - targetTop), snap: targetTop - height, line: targetTop },
+      { diff: Math.abs(activeBottom - targetCenterY), snap: targetCenterY - height, line: targetCenterY },
+      { diff: Math.abs(activeBottom - targetBottom), snap: targetBottom - height, line: targetBottom }
+    ];
+    
+    for (const opt of opts) {
+      if (opt.diff < minDiffY) {
+        minDiffY = opt.diff;
+        snappedY = opt.snap;
+        bestYLine = opt.line;
+        snappedYApplied = true;
+      }
+    }
+  }
+  
+  // Render guides if snapping occurred
+  if (snappedXApplied && bestXLine !== null) {
+    drawSmartGuide('v', bestXLine);
+  }
+  if (snappedYApplied && bestYLine !== null) {
+    drawSmartGuide('h', bestYLine);
+  }
+  
+  return {
+    x: snappedX,
+    y: snappedY,
+    snappedX: snappedXApplied,
+    snappedY: snappedYApplied
+  };
 }
 

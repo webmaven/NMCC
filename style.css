@@ -903,3 +903,113 @@ header {
     border-color: rgba(255, 159, 28, 0.4);
   }
 }
+
+/* ==========================================================================
+   FLOATING SETTINGS WIDGET & SWITCHES
+   ========================================================================== */
+.settings-widget {
+  position: absolute;
+  bottom: 80px; /* Moved slightly higher to stay above HUD and not overlap */
+  right: 24px;
+  background: var(--bg-control);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-premium);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 250px;
+  pointer-events: auto;
+  border-left: 3px solid var(--accent-gold);
+}
+
+.sw-header {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--accent-gold);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 6px;
+}
+
+.sw-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* Beautiful Toggle Switch */
+.sw-switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+.sw-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.sw-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: .2s;
+  border-radius: 20px;
+}
+.sw-slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-muted);
+  transition: .2s;
+  border-radius: 50%;
+}
+.sw-switch input:checked + .sw-slider {
+  background-color: rgba(227, 168, 87, 0.2);
+  border-color: rgba(227, 168, 87, 0.4);
+}
+.sw-switch input:checked + .sw-slider:before {
+  transform: translateX(14px);
+  background-color: var(--accent-gold);
+}
+
+/* Dynamic Smart Alignment Guides */
+.smart-guide-v {
+  position: absolute;
+  top: 0;
+  height: 2400px;
+  width: 0px;
+  border-left: 1px dashed var(--accent-gold);
+  opacity: 0.85;
+  z-index: 1000;
+  pointer-events: none;
+}
+.smart-guide-h {
+  position: absolute;
+  left: 0;
+  width: 3200px;
+  height: 0px;
+  border-top: 1px dashed var(--accent-gold);
+  opacity: 0.85;
+  z-index: 1000;
+  pointer-events: none;
+}
+
