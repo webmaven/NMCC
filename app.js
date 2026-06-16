@@ -142,8 +142,8 @@ function showToast(message, type = 'info', duration = 4000) {
 async function loadBoardData() {
   try {
     showToast('Loading mood board configuration...', 'info', 2000);
-    // Fetch data from local server / github pages
-    const response = await fetch(DATA_FILE_PATH);
+    // Fetch data from local server / github pages with cache buster
+    const response = await fetch(`${DATA_FILE_PATH}?_cb=${Date.now()}`);
     if (!response.ok) throw new Error('Data file not found or corrupted.');
     
     boardData = await response.json();
@@ -831,11 +831,15 @@ async function commitBoardData() {
   
   try {
     showToast('Connecting to GitHub repository API...', 'info', 1500);
-    const getUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE_PATH}?ref=${BRANCH_NAME}`;
+    const getUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATA_FILE_PATH}?ref=${BRANCH_NAME}&_cb=${Date.now()}`;
     
     // 1. Get the current file details to retrieve the latest commit SHA (prevents conflicts)
     const getResponse = await fetch(getUrl, {
-      headers: { 'Authorization': `token ${token}` }
+      headers: { 
+        'Authorization': `token ${token}`,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
     });
     
     let fileSha = null;
