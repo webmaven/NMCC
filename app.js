@@ -17,6 +17,12 @@ let isDragging = false;
 let isResizing = false;
 let isPanning = false;
 
+// Zoom & Editing Globals
+let zoom = 1.0;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 3.0;
+let editingAssetId = null;
+
 // Dragging & Resizing Math
 let startX, startY;
 let startLeft, startTop;
@@ -72,10 +78,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Zoom Shortcuts: Cmd/Ctrl + '+', '-', '0' (Always enabled to override default browser zooming)
+    const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+    if (isCmdOrCtrl) {
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        zoomIn();
+      } else if (e.key === '-') {
+        e.preventDefault();
+        zoomOut();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        zoomReset();
+      }
+    }
+
     // Undo / Redo Shortcuts (Bypass when editing text inputs to preserve native field history)
     if (!isEditingText) {
-      const isCmdOrCtrl = e.metaKey || e.ctrlKey;
-      
       // Undo: Cmd+Z or Ctrl+Z
       if (isCmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -225,7 +244,10 @@ function createTileDOM(asset) {
   tile.innerHTML = `
     <div class="tile-header">
       <div class="tile-title">${asset.title}</div>
-      <div class="tile-type-icon">${getTypeIcon(asset.type)}</div>
+      <div class="tile-header-actions">
+        <button class="tile-edit-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">✏️ Edit</button>
+        <div class="tile-type-icon">${getTypeIcon(asset.type)}</div>
+      </div>
     </div>
     <div class="tile-body">
       ${getTileBodyContent(asset)}
@@ -235,6 +257,7 @@ function createTileDOM(asset) {
       <button class="tb-btn" title="Bring to Front" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'front')">▲</button>
       <button class="tb-btn" title="Send to Back" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'back')">▼</button>
       <div class="tb-divider"></div>
+      <button class="tb-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">✏️</button>
       <button class="tb-btn delete" title="Delete Asset" onclick="event.stopPropagation(); deleteTile('${asset.id}')">🗑️</button>
     </div>
   `;
@@ -242,6 +265,10 @@ function createTileDOM(asset) {
   // Event Listeners for Interaction
   tile.addEventListener('mousedown', (e) => startInteraction(e, asset.id, tile));
   tile.addEventListener('touchstart', (e) => startInteraction(e, asset.id, tile), { passive: false });
+  tile.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    editTile(asset.id);
+  });
   
   board.appendChild(tile);
   return tile;
@@ -332,8 +359,8 @@ function setupCanvasControls() {
     } else if (isDragging && activeTile) {
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      const dx = clientX - startX;
-      const dy = clientY - startY;
+      const dx = (clientX - startX) / zoom;
+      const dy = (clientY - startY) / zoom;
       
       // Calculate and clamp coordinates to keep them inside the large board
       let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, startLeft + dx));
@@ -344,8 +371,8 @@ function setupCanvasControls() {
     } else if (isResizing && activeTile) {
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      const dx = clientX - startX;
-      const dy = clientY - startY;
+      const dx = (clientX - startX) / zoom;
+      const dy = (clientY - startY) / zoom;
       
       // Keep min dimension 150px
       let newWidth = Math.max(160, startWidth + dx);
@@ -359,6 +386,16 @@ function setupCanvasControls() {
   // End interaction
   window.addEventListener('mouseup', () => endInteraction());
   window.addEventListener('touchend', () => endInteraction());
+
+  // Trackpad pinch-to-zoom and Ctrl+wheel / Cmd+wheel zoom on viewport
+  viewport.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const zoomIntensity = 0.05;
+      let newZoom = zoom + (e.deltaY < 0 ? zoomIntensity : -zoomIntensity);
+      setZoom(newZoom);
+    }
+  }, { passive: false });
 }
 
 function startInteraction(e, assetId, tileElement) {
@@ -568,10 +605,75 @@ function openModal(modal) {
 function closeAllModals() {
   modalAdd.classList.remove('active');
   modalAuth.classList.remove('active');
+  
+  // Reset editing mode if it was active
+  if (editingAssetId) {
+    editingAssetId = null;
+    const modalHeader = document.querySelector('#modal-add .modal-header h2');
+    const modalSubmitBtn = document.querySelector('#modal-add .modal-footer .btn-primary');
+    if (modalHeader) modalHeader.textContent = 'Add Design Element';
+    if (modalSubmitBtn) modalSubmitBtn.textContent = 'Place on Board';
+    
+    // Clear inputs
+    document.getElementById('element-title').value = '';
+    document.getElementById('color-desc').value = '';
+    document.getElementById('image-url').value = '';
+    document.getElementById('image-desc').value = '';
+    document.getElementById('text-body').value = '';
+    document.getElementById('upload-zone').querySelector('span').textContent = 'Drag and drop or Click to upload (under 2MB)';
+  }
 }
 
 function submitNewElement() {
   const titleInput = document.getElementById('element-title');
+  
+  if (editingAssetId) {
+    const index = boardData.assets.findIndex(a => a.id === editingAssetId);
+    if (index === -1) return;
+    
+    // Push state to undoStack before modifying
+    undoStack.push(JSON.stringify(boardData));
+    redoStack = [];
+    updateUndoRedoButtons();
+    
+    const asset = boardData.assets[index];
+    asset.title = titleInput.value.trim() || `Untitled ${asset.type}`;
+    
+    if (asset.type === 'color') {
+      asset.value = document.getElementById('color-picker-val').value;
+      asset.description = document.getElementById('color-desc').value.trim();
+    } else if (asset.type === 'image') {
+      const url = document.getElementById('image-url').value.trim();
+      if (!url) {
+        showToast('Please specify an image link or upload a file.', 'error');
+        return;
+      }
+      asset.url = url;
+      asset.description = document.getElementById('image-desc').value.trim();
+    } else if (asset.type === 'text') {
+      const content = document.getElementById('text-body').value.trim();
+      if (!content) {
+        showToast('Please type some card text.', 'error');
+        return;
+      }
+      asset.content = content;
+      asset.background = document.getElementById('text-bg').value;
+      asset.color = document.getElementById('text-color').value;
+    } else if (asset.type === 'motif') {
+      asset.motifType = document.getElementById('motif-select').value;
+      asset.description = document.getElementById('motif-desc').value.trim();
+    }
+    
+    // Re-render and dirty check
+    renderBoard();
+    checkDirtyState();
+    
+    // Close & reset
+    closeAllModals();
+    showToast('Asset updated successfully!', 'success');
+    return;
+  }
+
   const title = titleInput.value.trim() || `New ${currentTabType}`;
   const id = `${currentTabType}-${Date.now()}`;
   
@@ -839,5 +941,91 @@ function checkDirtyState() {
   } else {
     markAsUnsaved();
   }
+}
+
+// ==========================================================================
+// CANVAS ZOOM ENGINE & CARD EDITING
+// ==========================================================================
+function setZoom(level) {
+  // Clamp zoom level between MIN_ZOOM (20%) and MAX_ZOOM (300%)
+  zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+  
+  // Apply transformation to board
+  if (board) {
+    board.style.transform = `scale(${zoom})`;
+  }
+  
+  // Update button HUD indicator
+  const indicator = document.getElementById('zoom-indicator');
+  if (indicator) {
+    indicator.textContent = `${Math.round(zoom * 100)}%`;
+  }
+  
+  // Update button disabled states if zoom is at limits
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  if (btnZoomIn) btnZoomIn.disabled = (zoom >= MAX_ZOOM);
+  if (btnZoomOut) btnZoomOut.disabled = (zoom <= MIN_ZOOM);
+}
+
+function zoomIn() {
+  setZoom(zoom + 0.1);
+}
+
+function zoomOut() {
+  setZoom(zoom - 0.1);
+}
+
+function zoomReset() {
+  setZoom(1.0);
+}
+
+function editTile(id) {
+  const asset = boardData.assets.find(a => a.id === id);
+  if (!asset) return;
+  
+  editingAssetId = id;
+  
+  // Update Modal UI labels for Editing state
+  const modalHeader = document.querySelector('#modal-add .modal-header h2');
+  const modalSubmitBtn = document.querySelector('#modal-add .modal-footer .btn-primary');
+  if (modalHeader) modalHeader.textContent = 'Edit Design Element';
+  if (modalSubmitBtn) modalSubmitBtn.textContent = 'Update Element';
+  
+  // Populate Title
+  document.getElementById('element-title').value = asset.title || '';
+  
+  // Hide all form sections and remove active tab class
+  const tabs = document.querySelectorAll('.type-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.form-section').forEach(sec => sec.style.display = 'none');
+  
+  // Activate correct tab and show correct form section
+  const targetTab = Array.from(tabs).find(t => t.dataset.type === asset.type);
+  if (targetTab) {
+    targetTab.classList.add('active');
+  }
+  currentTabType = asset.type;
+  document.getElementById(`sec-${asset.type}`).style.display = 'block';
+  
+  // Populate specific fields
+  if (asset.type === 'color') {
+    document.getElementById('color-picker-val').value = asset.value || '#000000';
+    document.getElementById('color-desc').value = asset.description || '';
+  } else if (asset.type === 'image') {
+    document.getElementById('image-url').value = asset.url || '';
+    document.getElementById('image-desc').value = asset.description || '';
+    const fileLabel = document.getElementById('upload-zone').querySelector('span');
+    if (fileLabel) fileLabel.textContent = asset.url && asset.url.startsWith('data:') ? 'Base64 Encoded Image' : 'Drag and drop or Click to upload (under 2MB)';
+  } else if (asset.type === 'text') {
+    document.getElementById('text-body').value = asset.content || '';
+    document.getElementById('text-bg').value = asset.background || '#1e222b';
+    document.getElementById('text-color').value = asset.color || '#f8f9fa';
+  } else if (asset.type === 'motif') {
+    document.getElementById('motif-select').value = asset.motifType || 'star';
+    document.getElementById('motif-desc').value = asset.description || '';
+  }
+  
+  openModal(modalAdd);
 }
 

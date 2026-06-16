@@ -37,6 +37,19 @@
           <span>↪️</span> Redo
         </button>
       </div>
+      
+      <!-- Zoom Controls Button Group -->
+      <div class="btn-group" style="margin-left: 10px;">
+        <button id="btn-zoom-out" class="btn" onclick="zoomOut()" title="Zoom Out (Cmd+- or Ctrl+-)">
+          <span>➖</span>
+        </button>
+        <button id="btn-zoom-reset" class="btn" onclick="zoomReset()" title="Reset Zoom to 1:1 (Cmd+0 or Ctrl+0)" style="min-width: 65px; font-weight: 600;">
+          <span id="zoom-indicator">100%</span>
+        </button>
+        <button id="btn-zoom-in" class="btn" onclick="zoomIn()" title="Zoom In (Cmd+= or Ctrl+=)">
+          <span>➕</span>
+        </button>
+      </div>
 
       <button id="btn-save" class="btn btn-secondary" onclick="commitBoardData()" title="Commit board layout back to gh-pages branch">
         <span>💾</span> Save Changes
@@ -72,7 +85,7 @@
   <div class="canvas-hud">
     <span id="hud-coords" class="hud-coordinates">X: 0px, Y: 0px</span>
     <span style="color: var(--text-muted); font-size: 12px;">|</span>
-    <span style="font-size: 11px; color: var(--text-secondary);">Drag tiles to move. Drag corners to resize. Press Backspace to delete. Hold and drag background to scroll-pan.</span>
+    <span style="font-size: 11px; color: var(--text-secondary);">Double-click a card or click "✏️ Edit" to update content. Drag cards to move. Drag corners to resize. Press Backspace to delete. Drag canvas to pan.</span>
   </div>
 
   <!-- ==========================================================================

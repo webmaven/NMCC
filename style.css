@@ -360,7 +360,36 @@ header {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80%;
+  max-width: 55%;
+}
+
+.tile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tile-edit-btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tile-edit-btn:hover {
+  color: var(--accent-gold);
+  background: rgba(227, 168, 87, 0.1);
+  border-color: rgba(227, 168, 87, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .tile-type-icon {
