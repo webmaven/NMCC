@@ -941,9 +941,7 @@ async function commitBoardData() {
     // 1. Get the current file details to retrieve the latest commit SHA (prevents conflicts)
     const getResponse = await fetch(getUrl, {
       headers: { 
-        'Authorization': `token ${token}`,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
+        'Authorization': `token ${token}`
       }
     });
     
