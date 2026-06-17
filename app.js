@@ -547,6 +547,16 @@ function createTileDOM(asset) {
   tile.style.height = `${asset.height}px`;
   tile.style.zIndex = asset.z || 1;
   
+  // Apply custom background and text color for text/sticky cards
+  if (asset.type === 'text') {
+    if (asset.background) {
+      tile.style.backgroundColor = asset.background;
+    }
+    if (asset.color) {
+      tile.style.color = asset.color;
+    }
+  }
+  
   // Inner structure template
   tile.innerHTML = `
     <div class="tile-header">

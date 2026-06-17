@@ -357,7 +357,7 @@ header {
   font-family: 'Outfit', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -498,7 +498,7 @@ header {
 .tile-text-content {
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-primary);
+  color: inherit;
   flex: 1;
 }
 
