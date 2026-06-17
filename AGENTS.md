@@ -138,7 +138,7 @@ sequenceDiagram
 
   User->>App: Click "Save Changes"
   App->>GH: GET /repos/webmaven/NMCC/contents/moodboard-data.json?ref=gh-pages&_cb=timestamp
-  Note over GH: Retrieves latest file SHA<br/>(Cache-Control and _cb prevent CDN/browser cache hits)
+  Note over GH: Retrieves latest file SHA<br/>(_cb query parameter prevents CDN/browser cache hits without triggering disallowed CORS headers)
   GH-->>App: 200 OK (returns file metadata & SHA)
   
   App->>App: Stringify boardData & encode to Base64
