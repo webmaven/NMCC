@@ -17,6 +17,10 @@ let isDragging = false;
 let isResizing = false;
 let isPanning = false;
 
+// Dynamic Canvas Dimensions
+let boardWidth = 10000;
+let boardHeight = 10000;
+
 // Zoom & Editing Globals
 let zoom = 1.0;
 const MIN_ZOOM = 0.2;
@@ -32,6 +36,17 @@ let startX, startY;
 let startLeft, startTop;
 let startWidth, startHeight;
 let activeTile = null;
+
+// Edge scrolling and scroll tracking variables
+let startScrollLeft = 0;
+let startScrollTop = 0;
+let edgeScrollDirectionX = 0; // -1 = Left, 1 = Right, 0 = None
+let edgeScrollDirectionY = 0; // -1 = Top, 1 = Bottom, 0 = None
+let edgeScrollAnimationId = null;
+const EDGE_SCROLL_SPEED = 14; // pixels per frame
+const EDGE_SCROLL_THRESHOLD = 60; // distance from viewport bounds in pixels
+let currentPointerClientX = 0;
+let currentPointerClientY = 0;
 
 // Panning Math
 let panStartX, panStartY;
@@ -111,6 +126,29 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         redo();
       }
+      
+      // Layering Shortcuts (Cmd/Ctrl + [ or ] with optional Shift)
+      if (selectedTileId && isCmdOrCtrl) {
+        if (e.key === ']') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            changeLayer(selectedTileId, 'front');
+            showToast('Brought asset to absolute front', 'info', 1500);
+          } else {
+            changeLayer(selectedTileId, 'forward');
+            showToast('Brought asset forward one layer', 'info', 1500);
+          }
+        } else if (e.key === '[') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            changeLayer(selectedTileId, 'back');
+            showToast('Sent asset to absolute back', 'info', 1500);
+          } else {
+            changeLayer(selectedTileId, 'backward');
+            showToast('Sent asset backward one layer', 'info', 1500);
+          }
+        }
+      }
     }
   });
 });
@@ -123,11 +161,14 @@ function showToast(message, type = 'info', duration = 4000) {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   
-  let icon = 'ℹ️';
-  if (type === 'success') icon = '✅';
-  if (type === 'error') icon = '⚠️';
+  let iconMarkup = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+  if (type === 'success') {
+    iconMarkup = '<svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+  } else if (type === 'error' || type === 'warning') {
+    iconMarkup = '<svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+  }
   
-  toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  toast.innerHTML = `${iconMarkup}<span>${message}</span>`;
   container.appendChild(toast);
   
   // Animate in
@@ -139,6 +180,7 @@ function showToast(message, type = 'info', duration = 4000) {
     setTimeout(() => toast.remove(), 300);
   }, duration);
 }
+
 
 // ==========================================================================
 // MOOD BOARD LOADING & RENDERING
@@ -175,7 +217,211 @@ async function loadBoardData() {
   }
 }
 
+// Helper functions for dynamic infinite board expansion
+function updateBoardDimensions(width, height) {
+  if (width > boardWidth) {
+    boardWidth = width;
+    board.style.width = `${boardWidth}px`;
+  }
+  if (height > boardHeight) {
+    boardHeight = height;
+    board.style.height = `${boardHeight}px`;
+  }
+}
+
+// Edge scrolling and active tile positioning helper functions
+function updateActiveTilePosition() {
+  if (!activeTile) return;
+  
+  const clientX = currentPointerClientX;
+  const clientY = currentPointerClientY;
+  
+  // Calculate viewport scroll deltas
+  const scrollDx = (viewport.scrollLeft - startScrollLeft) / zoom;
+  const scrollDy = (viewport.scrollTop - startScrollTop) / zoom;
+  
+  if (isDragging) {
+    const dx = (clientX - startX) / zoom + scrollDx;
+    const dy = (clientY - startY) / zoom + scrollDy;
+    
+    clearSmartGuides();
+    
+    let candidateLeft = startLeft + dx;
+    let candidateTop = startTop + dy;
+    
+    let snappedXApplied = false;
+    let snappedYApplied = false;
+    
+    if (snapToAlignActive) {
+      const snapped = calculateAlignmentSnapping(candidateLeft, candidateTop, activeTile.offsetWidth, activeTile.offsetHeight);
+      candidateLeft = snapped.x;
+      candidateTop = snapped.y;
+      snappedXApplied = snapped.snappedX;
+      snappedYApplied = snapped.snappedY;
+    }
+    
+    if (snapToGridActive) {
+      if (!snappedXApplied) {
+        candidateLeft = Math.round(candidateLeft / 20) * 20;
+      }
+      if (!snappedYApplied) {
+        candidateTop = Math.round(candidateTop / 20) * 20;
+      }
+    }
+    
+    // Keep inside top-left bounds but allow infinite right-bottom scrolling
+    let newLeft = Math.max(0, candidateLeft);
+    let newTop = Math.max(0, candidateTop);
+    
+    // Dynamically expand the board if dragging near or past boundaries
+    const neededWidth = newLeft + activeTile.offsetWidth + 200;
+    const neededHeight = newTop + activeTile.offsetHeight + 200;
+    updateBoardDimensions(neededWidth, neededHeight);
+    
+    activeTile.style.left = `${newLeft}px`;
+    activeTile.style.top = `${newTop}px`;
+    
+    // Update coordinates in the HUD
+    const hudCoords = document.getElementById('hud-coords');
+    if (hudCoords) {
+      const boardRect = board.getBoundingClientRect();
+      const x = Math.round(clientX - boardRect.left);
+      const y = Math.round(clientY - boardRect.top);
+      if (x >= 0 && x <= boardWidth && y >= 0 && y <= boardHeight) {
+        hudCoords.textContent = `X: ${x}px, Y: ${y}px`;
+      }
+    }
+    
+  } else if (isResizing) {
+    const dx = (clientX - startX) / zoom + scrollDx;
+    const dy = (clientY - startY) / zoom + scrollDy;
+    
+    // Keep min dimension 160px
+    let newWidth = Math.max(160, startWidth + dx);
+    let newHeight = Math.max(160, startHeight + dy);
+    
+    activeTile.style.width = `${newWidth}px`;
+    activeTile.style.height = `${newHeight}px`;
+    
+    // Dynamically expand the board if resizing near or past boundaries
+    const tileLeft = parseFloat(activeTile.style.left) || 0;
+    const tileTop = parseFloat(activeTile.style.top) || 0;
+    const neededWidth = tileLeft + newWidth + 200;
+    const neededHeight = tileTop + newHeight + 200;
+    updateBoardDimensions(neededWidth, neededHeight);
+  }
+}
+
+function startEdgeScrollLoop() {
+  if (edgeScrollAnimationId) return;
+  
+  function scrollStep() {
+    if (!isDragging && !isResizing) {
+      stopEdgeScrollLoop();
+      return;
+    }
+    
+    let scrolled = false;
+    
+    // Check horizontal scroll limits
+    if (edgeScrollDirectionX === 1) {
+      viewport.scrollLeft += EDGE_SCROLL_SPEED;
+      scrolled = true;
+    } else if (edgeScrollDirectionX === -1 && viewport.scrollLeft > 0) {
+      viewport.scrollLeft -= EDGE_SCROLL_SPEED;
+      scrolled = true;
+    }
+    
+    // Check vertical scroll limits
+    if (edgeScrollDirectionY === 1) {
+      viewport.scrollTop += EDGE_SCROLL_SPEED;
+      scrolled = true;
+    } else if (edgeScrollDirectionY === -1 && viewport.scrollTop > 0) {
+      viewport.scrollTop -= EDGE_SCROLL_SPEED;
+      scrolled = true;
+    }
+    
+    if (scrolled) {
+      // Re-trigger displacement and coordinate updates since scroll position changed!
+      updateActiveTilePosition();
+    }
+    
+    edgeScrollAnimationId = requestAnimationFrame(scrollStep);
+  }
+  
+  edgeScrollAnimationId = requestAnimationFrame(scrollStep);
+}
+
+function stopEdgeScrollLoop() {
+  if (edgeScrollAnimationId) {
+    cancelAnimationFrame(edgeScrollAnimationId);
+    edgeScrollAnimationId = null;
+  }
+  edgeScrollDirectionX = 0;
+  edgeScrollDirectionY = 0;
+}
+
+function checkEdgeScrollThreshold(clientX, clientY) {
+  if (!isDragging && !isResizing) {
+    stopEdgeScrollLoop();
+    return;
+  }
+  
+  const rect = viewport.getBoundingClientRect();
+  
+  // Reset directions
+  edgeScrollDirectionX = 0;
+  edgeScrollDirectionY = 0;
+  
+  // Check horizontal edges
+  if (clientX > rect.right - EDGE_SCROLL_THRESHOLD) {
+    edgeScrollDirectionX = 1; // Scroll right
+  } else if (clientX < rect.left + EDGE_SCROLL_THRESHOLD) {
+    if (viewport.scrollLeft > 0) {
+      edgeScrollDirectionX = -1; // Scroll left
+    }
+  }
+  
+  // Check vertical edges
+  if (clientY > rect.bottom - EDGE_SCROLL_THRESHOLD) {
+    edgeScrollDirectionY = 1; // Scroll down
+  } else if (clientY < rect.top + EDGE_SCROLL_THRESHOLD) {
+    if (viewport.scrollTop > 0) {
+      edgeScrollDirectionY = -1; // Scroll up
+    }
+  }
+  
+  // Start or stop loop accordingly
+  if (edgeScrollDirectionX !== 0 || edgeScrollDirectionY !== 0) {
+    startEdgeScrollLoop();
+  } else {
+    stopEdgeScrollLoop();
+  }
+}
+
+function ensureBoardSizeForAssets() {
+  let maxRight = 10000;
+  let maxBottom = 10000;
+  
+  if (boardData && boardData.assets) {
+    boardData.assets.forEach(asset => {
+      const right = (asset.x || 0) + (asset.width || 200);
+      const bottom = (asset.y || 0) + (asset.height || 200);
+      if (right > maxRight) maxRight = right;
+      if (bottom > maxBottom) maxBottom = bottom;
+    });
+  }
+  
+  // Expand in 800px increments if we exceed our starting baseline
+  const neededWidth = Math.max(10000, Math.ceil(maxRight / 800) * 800);
+  const neededHeight = Math.max(10000, Math.ceil(maxBottom / 800) * 800);
+  
+  updateBoardDimensions(neededWidth, neededHeight);
+}
+
 function renderBoard() {
+  ensureBoardSizeForAssets();
+  
   // Clear any existing tiles on the board, keep the HUD/background
   const existingTiles = board.querySelectorAll('.tile');
   existingTiles.forEach(tile => tile.remove());
@@ -276,7 +522,10 @@ function createTileDOM(asset) {
     <div class="tile-header">
       <div class="tile-title">${asset.title}</div>
       <div class="tile-header-actions">
-        <button class="tile-edit-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">✏️ Edit</button>
+        <button class="tile-edit-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          Edit
+        </button>
         <div class="tile-type-icon">${getTypeIcon(asset.type)}</div>
       </div>
     </div>
@@ -285,11 +534,25 @@ function createTileDOM(asset) {
     </div>
     <div class="resize-handle"></div>
     <div class="tile-toolbar">
-      <button class="tb-btn" title="Bring to Front" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'front')">▲</button>
-      <button class="tb-btn" title="Send to Back" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'back')">▼</button>
+      <button class="tb-btn" title="Bring to Front (To Top)" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'front')">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="4" x2="19" y2="4"></line><polyline points="17 14 12 9 7 14"></polyline><line x1="12" y1="9" x2="12" y2="20"></line></svg>
+      </button>
+      <button class="tb-btn" title="Bring Forward (Up 1 Layer)" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'forward')">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+      </button>
+      <button class="tb-btn" title="Send Backward (Down 1 Layer)" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'backward')">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <button class="tb-btn" title="Send to Back (To Bottom)" onclick="event.stopPropagation(); changeLayer('${asset.id}', 'back')">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="20" x2="19" y2="20"></line><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="4"></line></svg>
+      </button>
       <div class="tb-divider"></div>
-      <button class="tb-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">✏️</button>
-      <button class="tb-btn delete" title="Delete Asset" onclick="event.stopPropagation(); deleteTile('${asset.id}')">🗑️</button>
+      <button class="tb-btn" title="Edit Card Content" onclick="event.stopPropagation(); editTile('${asset.id}')">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+      </button>
+      <button class="tb-btn delete" title="Delete Asset" onclick="event.stopPropagation(); deleteTile('${asset.id}')">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+      </button>
     </div>
   `;
   
@@ -307,11 +570,16 @@ function createTileDOM(asset) {
 
 function getTypeIcon(type) {
   switch (type) {
-    case 'color': return '🎨';
-    case 'image': return '🖼️';
-    case 'text': return '📝';
-    case 'motif': return '✨';
-    default: return '📎';
+    case 'color':
+      return `<svg class="icon" viewBox="0 0 24 24"><path d="M12 22C17.52 22 22 17.52 22 12S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"></path><circle cx="7.5" cy="10.5" r="1.5"></circle><circle cx="11.5" cy="7.5" r="1.5"></circle><circle cx="16.5" cy="9.5" r="1.5"></circle><circle cx="15.5" cy="14.5" r="1.5"></circle></svg>`;
+    case 'image':
+      return `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+    case 'text':
+      return `<svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+    case 'motif':
+      return `<svg class="icon" viewBox="0 0 24 24"><path d="M12 2c0 5.523-4.477 10-10 10 5.523 0 10 4.477 10 10 0-5.523 4.477-10 10-10-5.523 0-10-4.477-10-10z"></path></svg>`;
+    default:
+      return `<svg class="icon" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`;
   }
 }
 
@@ -415,7 +683,7 @@ function setupCanvasControls() {
     const rect = board.getBoundingClientRect();
     const x = Math.round(clientX - rect.left);
     const y = Math.round(clientY - rect.top);
-    if (x >= 0 && x <= 3200 && y >= 0 && y <= 2400) {
+    if (x >= 0 && x <= boardWidth && y >= 0 && y <= boardHeight) {
       hudCoords.textContent = `X: ${x}px, Y: ${y}px`;
     }
     
@@ -427,51 +695,11 @@ function setupCanvasControls() {
       const walkY = (pageY - panStartY) * 1.5;
       viewport.scrollLeft = panScrollLeft - walkX;
       viewport.scrollTop = panScrollTop - walkY;
-    } else if (isDragging && activeTile) {
-      const dx = (clientX - startX) / zoom;
-      const dy = (clientY - startY) / zoom;
-      
-      clearSmartGuides();
-      
-      let candidateLeft = startLeft + dx;
-      let candidateTop = startTop + dy;
-      
-      let snappedXApplied = false;
-      let snappedYApplied = false;
-      
-      if (snapToAlignActive) {
-        const snapped = calculateAlignmentSnapping(candidateLeft, candidateTop, activeTile.offsetWidth, activeTile.offsetHeight);
-        candidateLeft = snapped.x;
-        candidateTop = snapped.y;
-        snappedXApplied = snapped.snappedX;
-        snappedYApplied = snapped.snappedY;
-      }
-      
-      if (snapToGridActive) {
-        if (!snappedXApplied) {
-          candidateLeft = Math.round(candidateLeft / 20) * 20;
-        }
-        if (!snappedYApplied) {
-          candidateTop = Math.round(candidateTop / 20) * 20;
-        }
-      }
-      
-      // Calculate and clamp coordinates to keep them inside the large board
-      let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, candidateLeft));
-      let newTop = Math.max(0, Math.min(2400 - activeTile.offsetHeight, candidateTop));
-      
-      activeTile.style.left = `${newLeft}px`;
-      activeTile.style.top = `${newTop}px`;
-    } else if (isResizing && activeTile) {
-      const dx = (clientX - startX) / zoom;
-      const dy = (clientY - startY) / zoom;
-      
-      // Keep min dimension 150px
-      let newWidth = Math.max(160, startWidth + dx);
-      let newHeight = Math.max(160, startHeight + dy);
-      
-      activeTile.style.width = `${newWidth}px`;
-      activeTile.style.height = `${newHeight}px`;
+    } else if ((isDragging || isResizing) && activeTile) {
+      currentPointerClientX = clientX;
+      currentPointerClientY = clientY;
+      updateActiveTilePosition();
+      checkEdgeScrollThreshold(clientX, clientY);
     }
   };
   
@@ -521,6 +749,12 @@ function startInteraction(e, assetId, tileElement) {
   startWidth = tileElement.offsetWidth;
   startHeight = tileElement.offsetHeight;
   
+  // Viewport scroll capture
+  startScrollLeft = viewport.scrollLeft;
+  startScrollTop = viewport.scrollTop;
+  currentPointerClientX = clientX;
+  currentPointerClientY = clientY;
+  
   // Prevent propagation to canvas
   e.stopPropagation();
   
@@ -535,6 +769,8 @@ function startInteraction(e, assetId, tileElement) {
 
 function endInteraction() {
   clearSmartGuides();
+  stopEdgeScrollLoop();
+  
   if (isPanning) {
     isPanning = false;
     viewport.style.cursor = 'grab';
@@ -603,19 +839,49 @@ function changeLayer(id, action) {
   redoStack = [];
   updateUndoRedoButtons();
   
-  const currentZ = boardData.assets[index].z || 1;
-  const zs = boardData.assets.map(a => a.z || 0);
-  const minZ = Math.min(...zs, 1);
-  const maxZ = Math.max(...zs, 1);
+  // Normalize z-indices to solid sequential integers starting from 1
+  const sorted = [...boardData.assets].sort((a, b) => (a.z || 1) - (b.z || 1));
+  sorted.forEach((asset, idx) => {
+    asset.z = idx + 1;
+  });
+  
+  const currentSortedIdx = sorted.findIndex(a => a.id === id);
   
   if (action === 'front') {
-    boardData.assets[index].z = maxZ + 1;
+    boardData.assets[index].z = sorted.length + 1;
   } else if (action === 'back') {
-    boardData.assets[index].z = Math.max(1, minZ - 1);
+    boardData.assets[index].z = 0;
+  } else if (action === 'forward') {
+    if (currentSortedIdx < sorted.length - 1) {
+      const nextAsset = sorted[currentSortedIdx + 1];
+      const tempZ = boardData.assets[index].z || 1;
+      const nextAssetIndexInOriginal = boardData.assets.findIndex(a => a.id === nextAsset.id);
+      
+      boardData.assets[index].z = nextAsset.z;
+      if (nextAssetIndexInOriginal !== -1) {
+        boardData.assets[nextAssetIndexInOriginal].z = tempZ;
+      }
+    }
+  } else if (action === 'backward') {
+    if (currentSortedIdx > 0) {
+      const prevAsset = sorted[currentSortedIdx - 1];
+      const tempZ = boardData.assets[index].z || 1;
+      const prevAssetIndexInOriginal = boardData.assets.findIndex(a => a.id === prevAsset.id);
+      
+      boardData.assets[index].z = prevAsset.z;
+      if (prevAssetIndexInOriginal !== -1) {
+        boardData.assets[prevAssetIndexInOriginal].z = tempZ;
+      }
+    }
   }
   
+  // Normalize once more to compress any gaps and save clean 1..N sequence
+  const finalSorted = [...boardData.assets].sort((a, b) => (a.z || 1) - (b.z || 1));
+  finalSorted.forEach((asset, idx) => {
+    asset.z = idx + 1;
+  });
+  
   checkDirtyState();
-  // Sort elements in DOM or re-render to reflect new ordering
   renderBoard();
   
   // Re-select the element after rendering

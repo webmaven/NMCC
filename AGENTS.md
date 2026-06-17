@@ -58,16 +58,22 @@ $$Width_{\text{new}} = \text{startWidth} + \frac{X_{\text{client}} - X_{\text{st
 $$Height_{\text{new}} = \text{startHeight} + \frac{Y_{\text{client}} - Y_{\text{start}}}{\text{zoom}}$$
 
 ### 3. Boundary Clamping Math
-To prevent elements from being dragged off the infinite drafting grid (dimensions: $3200\text{px} \times 2400\text{px}$), coordinates are strictly clamped:
+To prevent elements from being dragged off the dynamic drafting grid, coordinates are strictly clamped at the top-left boundary to ensure positive coordinates, while the right and bottom boundaries dynamically expand if an asset is positioned or resized near the edges:
 
-$$0 \le Left_{\text{new}} \le 3200 - Width_{\text{tile}}$$
+$$0 \le Left_{\text{new}}$$
 
-$$0 \le Top_{\text{new}} \le 2400 - Height_{\text{tile}}$$
+$$0 \le Top_{\text{new}}$$
 
 Implementation Snippet:
 ```javascript
-let newLeft = Math.max(0, Math.min(3200 - activeTile.offsetWidth, startLeft + dx));
-let newTop = Math.max(0, Math.min(2400 - activeTile.offsetHeight, startTop + dy));
+// Keep inside top-left bounds but allow infinite right-bottom scrolling
+let newLeft = Math.max(0, candidateLeft);
+let newTop = Math.max(0, candidateTop);
+
+// Dynamically expand the board if dragging near or past boundaries
+const neededWidth = newLeft + activeTile.offsetWidth + 200;
+const neededHeight = newTop + activeTile.offsetHeight + 200;
+updateBoardDimensions(neededWidth, neededHeight);
 ```
 
 ### 4. Grid Snapping Math
@@ -162,9 +168,9 @@ To bypass GitHub API write restrictions for the repository owner (`webmaven`), t
 Each element inside `boardData.assets` maps to a tile element injected inside `#board` using `createTileDOM(asset)`.
 
 Every card template contains three interactive handles and controls:
-1. **✏️ Edit (Card Header):** Labeled button, instantly discoverable, opens edit overlay with pre-populated fields.
-2. **▲ / ▼ Layer Order (Toolbar):** Moves elements frontward/backward by rewriting the global array indices and rebuilding `z-indices`.
-3. **🗑️ Delete (Toolbar):** Drops element from array and registers action onto the Undo history stack.
+1. **Edit (Card Header):** Diagonal pencil vector SVG, instantly discoverable, opens edit overlay with pre-populated fields.
+2. **Layer Order Toolbar (Toolbar):** High-contrast layout sequence indicators (SVG vector arrows) to move elements to top, forward, backward, or to bottom by normalizing the global array indices and rebuilding `z-indices`.
+3. **Delete (Toolbar):** Sleek segmented trash container SVG button to drop elements from the array and register the action onto the Undo history stack.
 
 ---
 

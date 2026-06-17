@@ -25,34 +25,34 @@
     
     <div class="header-center">
       <button id="btn-add-element" class="btn btn-primary" title="Add a new card to the canvas">
-        <span>➕</span> Add Design Element
+        <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Design Element
       </button>
       
       <!-- Undo / Redo Button Group -->
       <div class="btn-group">
         <button id="btn-undo" class="btn" onclick="undo()" title="Undo (Cmd+Z or Ctrl+Z)" disabled>
-          <span>↩️</span> Undo
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 3l-3 3"></path></svg> Undo
         </button>
         <button id="btn-redo" class="btn" onclick="redo()" title="Redo (Cmd+Shift+Z or Ctrl+Shift+Z)" disabled>
-          <span>↪️</span> Redo
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 3l3 3"></path></svg> Redo
         </button>
       </div>
       
       <!-- Zoom Controls Button Group -->
       <div class="btn-group" style="margin-left: 10px;">
         <button id="btn-zoom-out" class="btn" onclick="zoomOut()" title="Zoom Out (Cmd+- or Ctrl+-)">
-          <span>➖</span>
+          <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
         <button id="btn-zoom-reset" class="btn" onclick="zoomReset()" title="Reset Zoom to 1:1 (Cmd+0 or Ctrl+0)" style="min-width: 65px; font-weight: 600;">
           <span id="zoom-indicator">100%</span>
         </button>
         <button id="btn-zoom-in" class="btn" onclick="zoomIn()" title="Zoom In (Cmd+= or Ctrl+=)">
-          <span>➕</span>
+          <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
       </div>
 
       <button id="btn-save" class="btn btn-secondary" onclick="commitBoardData()" title="Commit board layout back to gh-pages branch">
-        <span>💾</span> Save Changes
+        <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Changes
       </button>
     </div>
     
@@ -105,10 +105,18 @@
       
       <!-- Asset Type Tabs -->
       <div class="type-selector">
-        <div class="type-tab active" data-type="color">🎨 Color Swatch</div>
-        <div class="type-tab" data-type="image">🖼️ Image Asset</div>
-        <div class="type-tab" data-type="text">📝 Rich Text</div>
-        <div class="type-tab" data-type="motif">✨ Motif Vector</div>
+        <div class="type-tab active" data-type="color">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 22C17.52 22 22 17.52 22 12S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10z"></path><circle cx="7.5" cy="10.5" r="1.5"></circle><circle cx="11.5" cy="7.5" r="1.5"></circle><circle cx="16.5" cy="9.5" r="1.5"></circle><circle cx="15.5" cy="14.5" r="1.5"></circle></svg> Color Swatch
+        </div>
+        <div class="type-tab" data-type="image">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> Image Asset
+        </div>
+        <div class="type-tab" data-type="text">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Rich Text
+        </div>
+        <div class="type-tab" data-type="motif">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2c0 5.523-4.477 10-10 10 5.523 0 10 4.477 10 10 0-5.523 4.477-10 10-10-5.523 0-10-4.477-10-10z"></path></svg> Motif Vector
+        </div>
       </div>
       
       <!-- Shared Form Details -->
@@ -224,7 +232,8 @@
        ========================================================================== -->
   <div class="settings-widget">
     <div class="sw-header">
-      <span>⚙️ Alignment Options</span>
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <span>Alignment Options</span>
     </div>
     <div class="sw-option">
       <span>Snap to Grid (20px)</span>
@@ -243,7 +252,7 @@
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 6px 0;"></div>
     <div class="sw-option" style="flex-direction: column; align-items: stretch; gap: 6px;">
       <button class="btn btn-secondary" onclick="downloadBackupJSON()" title="Export board layout to a local JSON file as a fallback backup" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px 10px; font-family: 'Outfit', sans-serif; gap: 6px;">
-        <span>📥</span> Export Backup (JSON)
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export Backup (JSON)
       </button>
     </div>
   </div>

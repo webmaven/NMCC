@@ -306,8 +306,8 @@ header {
 /* Infinite board grid dimensions */
 .board {
   position: relative;
-  width: 3200px;
-  height: 2400px;
+  width: 10000px;
+  height: 10000px;
   transform-origin: 0 0;
   transition: transform 0.1s ease-out;
 }
@@ -340,6 +340,7 @@ header {
   border-color: var(--accent-gold);
   box-shadow: 0 0 0 2px rgba(227, 168, 87, 0.25), var(--shadow-premium);
   z-index: 999 !important; /* Ensure selected tile is on top of dragging view */
+  overflow: visible;
 }
 
 /* Tile Inner Content Layout */
@@ -995,7 +996,7 @@ header {
 .smart-guide-v {
   position: absolute;
   top: 0;
-  height: 2400px;
+  bottom: 0;
   width: 0px;
   border-left: 1px dashed var(--accent-gold);
   opacity: 0.85;
@@ -1005,11 +1006,124 @@ header {
 .smart-guide-h {
   position: absolute;
   left: 0;
-  width: 3200px;
+  right: 0;
   height: 0px;
   border-top: 1px dashed var(--accent-gold);
   opacity: 0.85;
   z-index: 1000;
   pointer-events: none;
 }
+
+/* ==========================================================================
+   MINIMALIST VECTOR ICON SYSTEM
+   ========================================================================== */
+.icon {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  display: inline-block;
+  vertical-align: -2px;
+  transition: transform 0.15s ease, stroke 0.15s ease;
+}
+
+/* Specific icon size adjusters for context placement */
+.btn .icon {
+  width: 15px;
+  height: 15px;
+  margin-right: 4px;
+}
+
+#btn-zoom-out .icon,
+#btn-zoom-in .icon {
+  margin-right: 0;
+}
+
+.type-tab .icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.sw-header .icon {
+  width: 13px;
+  height: 13px;
+  margin-right: 6px;
+  stroke-width: 2.2;
+  vertical-align: -1px;
+}
+
+.tile-edit-btn .icon {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2.4;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+.tile-type-icon .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+  vertical-align: middle;
+}
+
+.tb-btn .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+}
+
+.toast .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+  flex-shrink: 0;
+}
+
+.toast.success .icon {
+  color: var(--status-success);
+}
+
+.toast.error .icon {
+  color: var(--accent-red);
+}
+
+.toast.info .icon {
+  color: var(--accent-gold);
+}
+
+/* Micro-animations on interactive hover states */
+.btn:hover .icon {
+  transform: scale(1.1);
+}
+
+.tb-btn:hover .icon {
+  transform: scale(1.15);
+  color: var(--accent-gold);
+}
+
+.tb-btn.delete:hover .icon {
+  color: var(--accent-red) !important;
+}
+
+.tile-edit-btn:hover .icon {
+  transform: scale(1.1);
+}
+
+.type-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sw-header {
+  display: flex;
+  align-items: center;
+}
+
 
