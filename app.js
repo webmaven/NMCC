@@ -20,6 +20,7 @@ let isPanning = false;
 // Dynamic Canvas Dimensions
 let boardWidth = 10000;
 let boardHeight = 10000;
+const BOARD_MARGIN = 3000;
 
 // Zoom & Editing Globals
 let zoom = 1.0;
@@ -201,6 +202,11 @@ async function loadBoardData() {
     updateUndoRedoButtons();
     
     renderBoard();
+    
+    // Set initial viewport scroll position centered at the board's top-left corner (BOARD_MARGIN)
+    viewport.scrollLeft = BOARD_MARGIN;
+    viewport.scrollTop = BOARD_MARGIN;
+    
     showToast('Inspiration board loaded successfully!', 'success', 2500);
   } catch (error) {
     console.error('Error loading board data:', error);
@@ -214,6 +220,10 @@ async function loadBoardData() {
     updateUndoRedoButtons();
     
     renderBoard();
+    
+    // Set initial viewport scroll position centered at the board's top-left corner (BOARD_MARGIN)
+    viewport.scrollLeft = BOARD_MARGIN;
+    viewport.scrollTop = BOARD_MARGIN;
   }
 }
 
@@ -1084,9 +1094,11 @@ function submitNewElement() {
   const title = titleInput.value.trim() || `New ${currentTabType}`;
   const id = `${currentTabType}-${Date.now()}`;
   
-  // Default coordinates at viewport scroll center to be visible immediately
-  const scrollX = viewport.scrollLeft + (viewport.offsetWidth / 2) - 150;
-  const scrollY = viewport.scrollTop + (viewport.offsetHeight / 2) - 150;
+  // Default coordinates at viewport scroll center (scale-invariant and margin-independent)
+  const viewportRect = viewport.getBoundingClientRect();
+  const boardRect = board.getBoundingClientRect();
+  const scrollX = (viewportRect.left + viewportRect.width / 2 - boardRect.left) / zoom - 150;
+  const scrollY = (viewportRect.top + viewportRect.height / 2 - boardRect.top) / zoom - 150;
   
   let newAsset = {
     id: id,
@@ -1383,9 +1395,9 @@ function setZoom(level, clientX, clientY) {
   const focalX = clientX - rect.left;
   const focalY = clientY - rect.top;
   
-  // Find current point on unscaled board coordinates
-  const boardX = (viewport.scrollLeft + focalX) / oldZoom;
-  const boardY = (viewport.scrollTop + focalY) / oldZoom;
+  // Find current point on unscaled board coordinates (offset-adjusted to support negative panning)
+  const boardX = (viewport.scrollLeft - BOARD_MARGIN + focalX) / oldZoom;
+  const boardY = (viewport.scrollTop - BOARD_MARGIN + focalY) / oldZoom;
   
   // Apply new zoom level
   zoom = targetZoom;
@@ -1394,9 +1406,9 @@ function setZoom(level, clientX, clientY) {
     board.style.transform = `scale(${zoom})`;
   }
   
-  // Update scrollbars to center precisely on the focal coordinate
-  viewport.scrollLeft = boardX * zoom - focalX;
-  viewport.scrollTop = boardY * zoom - focalY;
+  // Update scrollbars to center precisely on the focal coordinate, incorporating layout margins
+  viewport.scrollLeft = BOARD_MARGIN + (boardX * zoom - focalX);
+  viewport.scrollTop = BOARD_MARGIN + (boardY * zoom - focalY);
   
   // Update button HUD indicator
   const indicator = document.getElementById('zoom-indicator');
