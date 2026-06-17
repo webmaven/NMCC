@@ -309,7 +309,6 @@ header {
   width: 10000px;
   height: 10000px;
   transform-origin: 0 0;
-  transition: transform 0.1s ease-out;
 }
 
 /* ==========================================================================

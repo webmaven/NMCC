@@ -761,7 +761,7 @@ function setupCanvasControls() {
       e.preventDefault();
       const zoomIntensity = 0.05;
       let newZoom = zoom + (e.deltaY < 0 ? zoomIntensity : -zoomIntensity);
-      setZoom(newZoom);
+      setZoom(newZoom, e.clientX, e.clientY);
     }
   }, { passive: false });
 }
@@ -1363,14 +1363,40 @@ function checkDirtyState() {
 // ==========================================================================
 // CANVAS ZOOM ENGINE & CARD EDITING
 // ==========================================================================
-function setZoom(level) {
-  // Clamp zoom level between MIN_ZOOM (20%) and MAX_ZOOM (300%)
-  zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+function setZoom(level, clientX, clientY) {
+  const oldZoom = zoom;
   
-  // Apply transformation to board
+  // Clamp zoom level between MIN_ZOOM (20%) and MAX_ZOOM (300%)
+  const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+  
+  if (targetZoom === oldZoom) return; // No change in zoom
+  
+  // Calculate focal coordinates relative to viewport bounding client rect
+  const rect = viewport.getBoundingClientRect();
+  
+  // Fallback to viewport center if coordinates not provided
+  if (clientX === undefined || clientY === undefined) {
+    clientX = rect.left + rect.width / 2;
+    clientY = rect.top + rect.height / 2;
+  }
+  
+  const focalX = clientX - rect.left;
+  const focalY = clientY - rect.top;
+  
+  // Find current point on unscaled board coordinates
+  const boardX = (viewport.scrollLeft + focalX) / oldZoom;
+  const boardY = (viewport.scrollTop + focalY) / oldZoom;
+  
+  // Apply new zoom level
+  zoom = targetZoom;
+  
   if (board) {
     board.style.transform = `scale(${zoom})`;
   }
+  
+  // Update scrollbars to center precisely on the focal coordinate
+  viewport.scrollLeft = boardX * zoom - focalX;
+  viewport.scrollTop = boardY * zoom - focalY;
   
   // Update button HUD indicator
   const indicator = document.getElementById('zoom-indicator');
