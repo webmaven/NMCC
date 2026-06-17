@@ -296,16 +296,46 @@ function updateActiveTilePosition() {
     const dx = (clientX - startX) / zoom + scrollDx;
     const dy = (clientY - startY) / zoom + scrollDy;
     
+    clearSmartGuides();
+    
+    const tileLeft = parseFloat(activeTile.style.left) || 0;
+    const tileTop = parseFloat(activeTile.style.top) || 0;
+    
+    let candidateWidth = startWidth + dx;
+    let candidateHeight = startHeight + dy;
+    
+    let snappedXApplied = false;
+    let snappedYApplied = false;
+    
+    if (snapToAlignActive) {
+      const snapped = calculateResizingSnapping(tileLeft, tileTop, candidateWidth, candidateHeight);
+      candidateWidth = snapped.width;
+      candidateHeight = snapped.height;
+      snappedXApplied = snapped.snappedX;
+      snappedYApplied = snapped.snappedY;
+    }
+    
+    if (snapToGridActive) {
+      if (!snappedXApplied) {
+        const rawRight = tileLeft + candidateWidth;
+        const snappedRight = Math.round(rawRight / 20) * 20;
+        candidateWidth = snappedRight - tileLeft;
+      }
+      if (!snappedYApplied) {
+        const rawBottom = tileTop + candidateHeight;
+        const snappedBottom = Math.round(rawBottom / 20) * 20;
+        candidateHeight = snappedBottom - tileTop;
+      }
+    }
+    
     // Keep min dimension 160px
-    let newWidth = Math.max(160, startWidth + dx);
-    let newHeight = Math.max(160, startHeight + dy);
+    let newWidth = Math.max(160, candidateWidth);
+    let newHeight = Math.max(160, candidateHeight);
     
     activeTile.style.width = `${newWidth}px`;
     activeTile.style.height = `${newHeight}px`;
     
     // Dynamically expand the board if resizing near or past boundaries
-    const tileLeft = parseFloat(activeTile.style.left) || 0;
-    const tileTop = parseFloat(activeTile.style.top) || 0;
     const neededWidth = tileLeft + newWidth + 200;
     const neededHeight = tileTop + newHeight + 200;
     updateBoardDimensions(neededWidth, neededHeight);
@@ -1541,7 +1571,100 @@ function calculateAlignmentSnapping(candidateLeft, candidateTop, width, height) 
   };
 }
 
-// ==========================================================================
+function calculateResizingSnapping(tileLeft, tileTop, candidateWidth, candidateHeight) {
+  let snappedWidth = candidateWidth;
+  let snappedHeight = candidateHeight;
+  let snappedXApplied = false;
+  let snappedYApplied = false;
+  
+  const threshold = 8; // threshold in pixels
+  
+  // Compare against all other assets currently rendered that are "nearby" (within 800px center-to-center)
+  const activeCenterX = tileLeft + candidateWidth / 2;
+  const activeCenterY = tileTop + candidateHeight / 2;
+  
+  const otherAssets = boardData.assets.filter(a => {
+    if (a.id === selectedTileId) return false;
+    const targetCenterX = a.x + a.width / 2;
+    const targetCenterY = a.y + a.height / 2;
+    return Math.abs(activeCenterX - targetCenterX) < 800 && Math.abs(activeCenterY - targetCenterY) < 800;
+  });
+  
+  let minDiffX = threshold + 1;
+  let bestXLine = null;
+  
+  let minDiffY = threshold + 1;
+  let bestYLine = null;
+  
+  // Resizing right edge (determines width, draws Vertical guide lines)
+  const activeRight = tileLeft + candidateWidth;
+  
+  for (const a of otherAssets) {
+    const targetLeft = a.x;
+    const targetCenterX = a.x + a.width / 2;
+    const targetRight = a.x + a.width;
+    
+    const opts = [
+      { diff: Math.abs(activeRight - targetLeft), snapWidth: targetLeft - tileLeft, line: targetLeft },
+      { diff: Math.abs(activeRight - targetCenterX), snapWidth: targetCenterX - tileLeft, line: targetCenterX },
+      { diff: Math.abs(activeRight - targetRight), snapWidth: targetRight - tileLeft, line: targetRight }
+    ];
+    
+    for (const opt of opts) {
+      if (opt.diff < minDiffX) {
+        if (opt.snapWidth >= 160) {
+          minDiffX = opt.diff;
+          snappedWidth = opt.snapWidth;
+          bestXLine = opt.line;
+          snappedXApplied = true;
+        }
+      }
+    }
+  }
+  
+  // Resizing bottom edge (determines height, draws Horizontal guide lines)
+  const activeBottom = tileTop + candidateHeight;
+  
+  for (const a of otherAssets) {
+    const targetTop = a.y;
+    const targetCenterY = a.y + a.height / 2;
+    const targetBottom = a.y + a.height;
+    
+    const opts = [
+      { diff: Math.abs(activeBottom - targetTop), snapHeight: targetTop - tileTop, line: targetTop },
+      { diff: Math.abs(activeBottom - targetCenterY), snapHeight: targetCenterY - tileTop, line: targetCenterY },
+      { diff: Math.abs(activeBottom - targetBottom), snapHeight: targetBottom - tileTop, line: targetBottom }
+    ];
+    
+    for (const opt of opts) {
+      if (opt.diff < minDiffY) {
+        if (opt.snapHeight >= 160) {
+          minDiffY = opt.diff;
+          snappedHeight = opt.snapHeight;
+          bestYLine = opt.line;
+          snappedYApplied = true;
+        }
+      }
+    }
+  }
+  
+  // Render guides if snapping occurred
+  if (snappedXApplied && bestXLine !== null) {
+    drawSmartGuide('v', bestXLine);
+  }
+  if (snappedYApplied && bestYLine !== null) {
+    drawSmartGuide('h', bestYLine);
+  }
+  
+  return {
+    width: snappedWidth,
+    height: snappedHeight,
+    snappedX: snappedXApplied,
+    snappedY: snappedYApplied
+  };
+}
+
+// ==========================================================================================
 // FALLBACK CLIENT-SIDE EXPORT/DOWNLOAD OF BOARD STATE
 // ==========================================================================
 function downloadBackupJSON() {
