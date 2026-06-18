@@ -24,45 +24,56 @@
     </div>
     
     <div class="header-center">
+      <button id="btn-toggle-stack" class="btn btn-secondary" title="Toggle Layers Stack Panel (Left sidebar)">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polygon points="2 17 12 22 22 17"></polygon><polygon points="2 12 12 17 22 12"></polygon></svg> Layers
+      </button>
+
       <button id="btn-add-element" class="btn btn-primary" title="Add a new card to the canvas">
         <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add Design Element
       </button>
       
       <!-- Undo / Redo Button Group -->
       <div class="btn-group">
-        <button id="btn-undo" class="btn" onclick="undo()" title="Undo (Cmd+Z or Ctrl+Z)" disabled>
+        <button id="btn-undo" class="btn" title="Undo (Cmd+Z or Ctrl+Z)" disabled>
           <svg class="icon" viewBox="0 0 24 24"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 3l-3 3"></path></svg> Undo
         </button>
-        <button id="btn-redo" class="btn" onclick="redo()" title="Redo (Cmd+Shift+Z or Ctrl+Shift+Z)" disabled>
+        <button id="btn-redo" class="btn" title="Redo (Cmd+Shift+Z or Ctrl+Shift+Z)" disabled>
           <svg class="icon" viewBox="0 0 24 24"><path d="M21 7v6h-6"></path><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 3l3 3"></path></svg> Redo
         </button>
       </div>
       
       <!-- Zoom Controls Button Group -->
       <div class="btn-group" style="margin-left: 10px;">
-        <button id="btn-zoom-out" class="btn" onclick="zoomOut()" title="Zoom Out (Cmd+- or Ctrl+-)">
+        <button id="btn-zoom-out" class="btn" title="Zoom Out (Cmd+- or Ctrl+-)">
           <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
-        <button id="btn-zoom-reset" class="btn" onclick="zoomReset()" title="Reset Zoom to 1:1 (Cmd+0 or Ctrl+0)" style="min-width: 65px; font-weight: 600;">
+        <button id="btn-zoom-reset" class="btn" title="Reset Zoom to 1:1 (Cmd+0 or Ctrl+0)" style="min-width: 65px; font-weight: 600;">
           <span id="zoom-indicator">100%</span>
         </button>
-        <button id="btn-zoom-in" class="btn" onclick="zoomIn()" title="Zoom In (Cmd+= or Ctrl+=)">
+        <button id="btn-zoom-in" class="btn" title="Zoom In (Cmd+= or Ctrl+=)">
           <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <button id="btn-zoom-fit" class="btn" title="Zoom to Fit Board Content (Show all cards)">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>
         </button>
       </div>
 
-      <button id="btn-save" class="btn btn-secondary" onclick="commitBoardData()" title="Commit board layout back to gh-pages branch">
+      <button id="btn-toggle-settings" class="btn btn-secondary" title="Toggle Alignment Options Panel (Right sidebar)">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Alignment
+      </button>
+
+      <button id="btn-save" class="btn btn-secondary" title="Commit board layout back to gh-pages branch">
         <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Changes
       </button>
     </div>
     
     <div class="header-right">
-      <div id="user-pill" class="user-pill" style="display: none;" onclick="logout()" title="Click to clear token / logout">
+      <div id="user-pill" class="user-pill" style="display: none;" title="Click to clear token / logout">
         <div id="user-avatar" class="user-avatar">W</div>
         <span id="user-name">webmaven</span>
         <span style="font-size: 10px; color: var(--text-muted);">▼</span>
       </div>
-      <button id="btn-login" class="btn btn-secondary" onclick="handleLoginClick()">
+      <button id="btn-login" class="btn btn-secondary">
         Login with GitHub
       </button>
     </div>
@@ -192,7 +203,7 @@
       <!-- Modal Footer -->
       <div class="modal-footer">
         <button class="btn btn-secondary modal-close">Cancel</button>
-        <button class="btn btn-primary" onclick="submitNewElement()">Place on Board</button>
+        <button id="btn-element-submit" class="btn btn-primary">Place on Board</button>
       </div>
     </div>
   </div>
@@ -222,18 +233,37 @@
       
       <div class="modal-footer" style="margin-top: 15px;">
         <button class="btn btn-secondary modal-close">Cancel</button>
-        <button class="btn btn-primary" onclick="verifyAndSaveToken()">Verify & Connect</button>
+        <button id="btn-auth-save" class="btn btn-primary">Verify & Connect</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       FLOATING LAYERS STACK WIDGET
+       ========================================================================== -->
+  <div id="stack-widget" class="stack-widget">
+    <div class="sw-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polygon points="2 17 12 22 22 17"></polygon><polygon points="2 12 12 17 22 12"></polygon></svg>
+        <span>Card Layers</span>
+      </div>
+      <button class="stack-close" id="btn-close-stack" title="Close Panel">&times;</button>
+    </div>
+    <div class="stack-list" id="stack-list">
+      <!-- Generated dynamically in js/app.js -->
     </div>
   </div>
 
   <!-- ==========================================================================
        FLOATING SNAPPING SETTINGS WIDGET
        ========================================================================== -->
-  <div class="settings-widget">
-    <div class="sw-header">
-      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      <span>Alignment Options</span>
+  <div class="settings-widget" id="settings-widget">
+    <div class="sw-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Alignment Options</span>
+      </div>
+      <button class="settings-close" id="btn-close-settings" title="Close Panel">&times;</button>
     </div>
     <div class="sw-option">
       <span>Snap to Grid (20px)</span>
@@ -251,13 +281,13 @@
     </div>
     <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 6px 0;"></div>
     <div class="sw-option" style="flex-direction: column; align-items: stretch; gap: 6px;">
-      <button class="btn btn-secondary" onclick="downloadBackupJSON()" title="Export board layout to a local JSON file as a fallback backup" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px 10px; font-family: 'Outfit', sans-serif; gap: 6px;">
+      <button id="btn-export-backup" class="btn btn-secondary" title="Export board layout to a local JSON file as a fallback backup" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px 10px; font-family: 'Outfit', sans-serif; gap: 6px;">
         <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export Backup (JSON)
       </button>
     </div>
   </div>
 
   <!-- Core JS File -->
-  <script src="app.js" defer></script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

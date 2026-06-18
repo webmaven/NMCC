@@ -1,0 +1,62 @@
+/**
+ * Editor-Specific Stylesheet
+ *
+ * Provides immediate visual feedback in the Gutenberg editor when
+ * an editor highlights text and applies "ᏣᎳᎩ" (Syllabary) or "Translit" formatting.
+ * These subtle tints and badges only show inside the editor, not on the frontend.
+ *
+ * @package NMCC
+ */
+
+span.cherokee-syllabary {
+    font-family: "Noto Serif Cherokee", "Noto Sans Cherokee", serif, sans-serif !important;
+    background-color: rgba(200, 90, 50, 0.08) !important;
+    border-bottom: 1.5px dashed #C85A32 !important;
+    color: #C85A32 !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    display: inline-block !important;
+}
+
+span.cherokee-syllabary::after {
+    content: "ᏣᎳᎩ" !important;
+    font-size: 0.6rem !important;
+    font-family: var(--wp--preset--font-family--noto-sans), sans-serif !important;
+    background: #C85A32 !important;
+    color: #FFF !important;
+    padding: 0px 4px !important;
+    border-radius: 2px !important;
+    margin-left: 4px !important;
+    vertical-align: middle !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    display: inline-block !important;
+    line-height: 1.2 !important;
+}
+
+span.cherokee-translit {
+    font-family: "Noto Serif", "Noto Sans", serif, sans-serif !important;
+    font-style: italic !important;
+    background-color: rgba(112, 138, 119, 0.08) !important;
+    border-bottom: 1.5px dotted #708A77 !important;
+    color: #4A4A4A !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    display: inline-block !important;
+}
+
+span.cherokee-translit::after {
+    content: "Latn" !important;
+    font-size: 0.6rem !important;
+    font-family: var(--wp--preset--font-family--noto-sans), sans-serif !important;
+    background: #708A77 !important;
+    color: #FFF !important;
+    padding: 0px 4px !important;
+    border-radius: 2px !important;
+    margin-left: 4px !important;
+    vertical-align: middle !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    display: inline-block !important;
+    line-height: 1.2 !important;
+}

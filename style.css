@@ -918,10 +918,13 @@ header {
 /* ==========================================================================
    FLOATING SETTINGS WIDGET & SWITCHES
    ========================================================================== */
+/* Symmetrical Sidebar Panels (Popouts) */
+.stack-widget,
 .settings-widget {
-  position: absolute;
-  bottom: 80px; /* Moved slightly higher to stay above HUD and not overlap */
-  right: 24px;
+  position: fixed; /* Fix to viewport so they don't scroll with canvas */
+  top: calc(var(--header-height) + 16px);
+  height: calc(100vh - var(--header-height) - 32px);
+  width: 260px;
   background: var(--bg-control);
   border: 1px solid var(--border-light);
   border-radius: 12px;
@@ -932,10 +935,211 @@ header {
   z-index: 1002;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 250px;
+  gap: 12px;
   pointer-events: auto;
+  opacity: 0;
+  transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              right 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Position left (stack) and right (settings) panels */
+.stack-widget {
+  left: -280px;
   border-left: 3px solid var(--accent-gold);
+}
+.stack-widget.active {
+  left: 16px;
+  opacity: 1;
+}
+
+.settings-widget {
+  right: -280px;
+  border-right: 3px solid var(--accent-gold);
+}
+.settings-widget.active {
+  right: 16px;
+  opacity: 1;
+}
+
+/* Active header toggle styling */
+.btn.active {
+  background-color: rgba(227, 168, 87, 0.15);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(227, 168, 87, 0.15);
+}
+
+/* Close button styling for sidebars */
+.stack-close,
+.settings-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: -4px;
+}
+.stack-close:hover,
+.settings-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* Layers Stack List Container */
+.stack-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-right: 4px;
+}
+
+/* Customized scrollbar for the stack list */
+.stack-list::-webkit-scrollbar {
+  width: 4px;
+}
+.stack-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.stack-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.stack-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Individual Layers Item */
+.stack-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: grab;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+  user-select: none;
+}
+.stack-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.stack-item:active {
+  cursor: grabbing;
+}
+
+/* Drag state highlight */
+.stack-item.dragging {
+  opacity: 0.4;
+  border: 1px dashed var(--accent-gold);
+  background: rgba(227, 168, 87, 0.05);
+  transform: scale(0.98);
+}
+
+/* Highlight layer if selected on the board */
+.stack-item.selected {
+  border-color: var(--accent-gold);
+  background: rgba(227, 168, 87, 0.08);
+}
+
+/* Drop targets insertion indicators */
+.stack-item.drag-over-top {
+  border-top: 2px solid var(--accent-gold);
+}
+.stack-item.drag-over-bottom {
+  border-bottom: 2px solid var(--accent-gold);
+}
+
+/* Layer item left layout (title + icon) */
+.si-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.si-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+.si-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.si-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actions inside the layer item (hidden until hover) */
+.si-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.stack-item:hover .si-actions {
+  opacity: 1;
+}
+.si-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+  width: 20px;
+  height: 20px;
+}
+.si-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent-gold);
+}
+.si-btn.delete:hover {
+  color: var(--accent-red);
+}
+.si-btn svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
 }
 
 .sw-header {
@@ -1005,8 +1209,8 @@ header {
 /* Dynamic Smart Alignment Guides */
 .smart-guide-v {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: -50000px;
+  bottom: -50000px;
   width: 0px;
   border-left: 1px dashed var(--accent-gold);
   opacity: 0.85;
@@ -1015,8 +1219,8 @@ header {
 }
 .smart-guide-h {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: -50000px;
+  right: -50000px;
   height: 0px;
   border-top: 1px dashed var(--accent-gold);
   opacity: 0.85;
