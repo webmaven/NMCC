@@ -35,26 +35,38 @@ To guarantee a seamless experience for editors who may be non-technical or tech-
 
 ---
 
-## 🎨 Design System: Typography & Colors
+## 🎨 Visual Identity & Style Guide
 
-### Unified Bilingual Typography Metrics
+This repository doubles as the **Official Design System & Visual Identity Handbook** for the New Mexico Cherokee Community. The design was crafted from the ground up to feel warm, organic, grounded, and culturally authentic.
+
+---
+
+### 🧱 Master Color Palette
+To prevent accidental design inconsistencies, the block editor restricts administrators strictly to these warm, organic tones:
+
+| Color Token | Hex Code | Visual Sample | Core Purpose |
+| :--- | :--- | :---: | :--- |
+| **Soft Cream** | `#FAF8F5` | `█████████` | Primary site background; welcoming, high-readability, low screen glare. |
+| **Warm Alabaster** | `#EFECE6` | `█████████` | Secondary layout sections, card backgrounds, and panel divisions. |
+| **Clay Accent** | `#C85A32` | `█████████` | Warm copper/clay brand color used for primary buttons, active links, and highlights. |
+| **Sage Secondary** | `#708A77` | `█████████` | Soft organic green used for badges, categories, date indicators, and metadata. |
+| **Warm Charcoal** | `#2E2C29` | `█████████` | High-contrast body copy and interface labels for deep reading accessibility. |
+
+---
+
+### 🔤 Typographic Hierarchy & Metric Alignment
 Mixing English text and Cherokee Syllabary inline often causes layout "jumping" and uneven lines because of mismatched script heights. To solve this, the theme maps Google's companion Noto families, which are designed to share identical metrics and vertical colors:
-*   **Headings:** `Noto Serif` + `Noto Serif Cherokee` (loaded locally with a remote Google CDN fallback).
-*   **Body, UI, & Metadata:** `Noto Sans` + `Noto Sans Cherokee`.
+*   **Primary Display (h1 - h4):** `Noto Serif` + `Noto Serif Cherokee` (loaded locally with a remote Google CDN fallback).
+    *   *Sizing:* Title (44px, line-height 1.25), Headline (32px, line-height 1.3).
+*   **Body & Interface Copy:** `Noto Sans` + `Noto Sans Cherokee`.
+    *   *Sizing:* Standard body copy (18px, line-height 1.6, letter-spacing 0.01em).
 
-### Warm Neutral Palette
-The color scheme is designed to feel warm, organic, and grounded:
-*   **Soft Cream** (`#FAF8F5`) — Primary site background; welcoming and low-strain on screens.
-*   **Warm Alabaster** (`#EFECE6`) — Secondary card background; groups sections clearly.
-*   **Clay Accent** (`#C85A32`) — Warm copper/clay brand color used for active elements, buttons, and highlights.
-*   **Sage Secondary** (`#708A77`) — Soft organic green used for tags, indicators, and secondary highlights.
-*   **Warm Charcoal** (`#2E2C29`) — Primary high-contrast body text.
+---
 
-### Visual Guardrails
-To prevent accidental design inconsistencies, `theme.json` disables the following in the block editor:
-*   **No custom colors** (editors can only choose colors from our curated palette).
-*   **No custom gradients**.
-*   **No custom font sizing** (restricts headings to standard typography sizes).
+### 🧱 Architectural Guardrails
+To prevent editors from accidentally breaking the site's layout or design:
+*   **Locked Layout Blocks:** Header, footer, and page structures are locked. Editors can modify content and copy but cannot delete structural frames.
+*   **Palette Restrictions:** No custom hex colors, custom gradients, or random text sizing are allowed inside the Gutenberg block editor.
 
 ---
 
@@ -76,26 +88,44 @@ The theme enqueues a custom script (`assets/js/editor.js`) that injects two new 
 
 ---
 
-## 📱 Custom Layout Patterns & Facebook Feed
+## 📱 Custom Layout Patterns & Site Blueprints
 
 We register 5 custom block layouts in the **"New Mexico Cherokee Community"** category. Editors can insert these complete blocks instantly:
 
-### 1. Community Hero & Facebook Bridge
+### 1. Community Hero & Facebook Bridge (`homepage-hero`)
 A striking split hero layout. The left column contains a warm bilingual welcome message, while the right column houses our custom **Facebook Community CTA Card**, displaying live statistics and inviting users to join.
 
-### 2. Facebook Featured Posts Feed
+![Community Hero Pattern](assets/screenshots/pattern_homepage-hero.png)
+
+---
+
+### 2. Community Story / About Section (`community-about`)
+A gorgeous editorial layout highlighting a Cherokee cultural quote (*ᏗᏣᏓᏩᏛᎯᏓ* • Find one another) and providing a balanced dual-column text layout.
+
+![Community About Pattern](assets/screenshots/pattern_community-about.png)
+
+---
+
+### 3. Announcements & Events Grid (`announcements-grid`)
+A crisp, reader-friendly cards grid designed for classes, dinners, and gatherings, featuring date tags and quick-links.
+
+![Announcements Grid Pattern](assets/screenshots/pattern_announcements-grid.png)
+
+---
+
+### 4. Citizen & Cultural Resources (`resource-library`)
+A 4-column card list linking community members to official tribal services, language application portals, At-Large voter registration, and the Cherokee Phoenix newspaper.
+
+![Resource Library Pattern](assets/screenshots/pattern_resource-library.png)
+
+---
+
+### 5. Facebook Featured Posts Feed (`facebook-posts-feed`)
 A 3-column responsive card layout utilizing native WordPress **Embed** blocks.
 *   **No API Keys Required:** Unlike heavy plugins that require developer accounts and expire every 60 days, this block leverages WordPress's native oEmbed engine.
 *   **To Update the Feed:** Open your Facebook Group, click `...` on a public post -> click **Copy Link**. Then open the WordPress editor, click on a post card, paste your link, and click **Embed**. The card automatically scales and formats the post perfectly inside our theme.
 
-### 3. Announcements & Events Grid
-A crisp, reader-friendly cards grid designed for classes, dinners, and gatherings, featuring date tags and quick-links.
-
-### 4. Citizen & Cultural Resources
-A 4-column card list linking community members to official tribal services, language application portals, At-Large voter registration, and the Cherokee Phoenix newspaper.
-
-### 5. Community Story / About Section
-A gorgeous editorial layout highlighting a Cherokee cultural quote (*ᏗᏣᏓᏩᏛᎯᏓ* • Find one another) and providing a balanced dual-column text layout.
+![Facebook Posts Feed Pattern](assets/screenshots/pattern_facebook-posts-feed.png)
 
 ---
 
