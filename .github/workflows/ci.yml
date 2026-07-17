@@ -93,7 +93,7 @@ jobs:
           cp $HOME/wordpress-develop/wp-tests-config-sample.php $WP_TESTS_DIR/wp-tests-config.php
           sed -i "s/yourpasswordhere//g" $WP_TESTS_DIR/wp-tests-config.php
           sed -i "s/localhost/127.0.0.1/g" $WP_TESTS_DIR/wp-tests-config.php
-          sed -i "s/youremptydatabasename/wordpress_tests/g" $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s/youremptytestdbnamehere/wordpress_tests/g" $WP_TESTS_DIR/wp-tests-config.php
           sed -i "s/yourusernamehere/root/g" $WP_TESTS_DIR/wp-tests-config.php
           sed -i "s|dirname( __FILE__ ) . '/src/'|'$WP_CORE_DIR/'|g" $WP_TESTS_DIR/wp-tests-config.php
           
