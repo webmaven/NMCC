@@ -1,5 +1,7 @@
 # New Mexico Cherokee Community (NMCC) WordPress Theme
 
+![NMCC Theme Preview](screenshot.png)
+
 A modern, highly accessible, and semantically robust WordPress Block Theme (Full Site Editing - FSE) built specifically for the **New Mexico Cherokee Community**. 
 
 The theme features a unified English-Cherokee typographic design system, strict editorial guardrails to prevent non-technical editors from breaking layouts, a custom Gutenberg editor extension for mixed bilingual inline text entry, and a native Facebook Group featured posts card feed.

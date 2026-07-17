@@ -20,3 +20,7 @@ yarn-error.log*
 /wordpress/
 /wordpress-tests-lib/
 wp-tests-config.php
+.wordpress_local/
+venv/
+.wp-env.json
+
