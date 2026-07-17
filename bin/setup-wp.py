@@ -77,11 +77,7 @@ def setup():
         config_content = f.read()
         
     # Inject SQLite activation trigger into wp-config.php
-    sqlite_code = """
-// Activate SQLite database integration
-define( 'DB_ENGINE', 'sqlite' );
-"""
-    config_content = sqlite_code + config_content
+    config_content = config_content.replace("<?php", "<?php\n// Activate SQLite database integration\ndefine( 'DB_ENGINE', 'sqlite' );\n")
     
     with open(config_file, 'w', encoding='utf-8') as f:
         f.write(config_content)
