@@ -1,0 +1,15 @@
+{
+    "name": "webmaven/nmcc-theme",
+    "description": "A modern, semantic, and highly configurable WordPress Block Theme built specifically for the New Mexico Cherokee Community.",
+    "type": "wordpress-theme",
+    "license": "GPL-2.0-or-later",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "wp-phpunit/wp-phpunit": "^6.0"
+    },
+    "autoload": {
+        "classmap": [
+            "functions.php"
+        ]
+    }
+}

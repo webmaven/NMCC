@@ -1,0 +1,111 @@
+name: NMCC Theme CI Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  javascript-tests:
+    name: Lint & JS Unit Tests (Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm install
+
+      - name: Run Jest Test Suite
+        run: npm run test
+
+  structural-tests:
+    name: Block Template & JSON Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run Integrity Validation Script
+        run: python3 bin/run-tests.py
+
+  phpunit-tests:
+    name: WordPress PHPUnit Integration
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: wordpress_tests
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mysqli, mbstring, xml, ctype, json, gd
+          tools: composer
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Setup WordPress Test Library
+        run: |
+          # Create directories for WordPress core and test framework
+          WP_TESTS_DIR=$HOME/wordpress-tests-lib
+          WP_CORE_DIR=$HOME/wordpress
+          mkdir -p $WP_TESTS_DIR
+          mkdir -p $WP_CORE_DIR
+          
+          # Download WordPress Core tests includes and data libraries
+          echo "Downloading WordPress Core PHPUnit Testing library..."
+          curl -sS -L https://raw.githubusercontent.com/WordPress/wordpress-develop/6.2/tests/phpunit/includes/functions.php -o $WP_TESTS_DIR/functions.php
+          mkdir -p $WP_TESTS_DIR/includes
+          curl -sS -L https://raw.githubusercontent.com/WordPress/wordpress-develop/6.2/tests/phpunit/includes/bootstrap.php -o $WP_TESTS_DIR/includes/bootstrap.php
+          curl -sS -L https://raw.githubusercontent.com/WordPress/wordpress-develop/6.2/tests/phpunit/includes/wp-tests-config-sample.php -o $WP_TESTS_DIR/includes/wp-tests-config-sample.php
+          
+          # Download fully packaged WordPress Core release
+          echo "Downloading WordPress Core release..."
+          curl -sS https://wordpress.org/wordpress-6.2.tar.gz -o $HOME/wordpress.tar.gz
+          tar -xzf $HOME/wordpress.tar.gz -C $HOME
+          
+          # Setup wp-tests-config.php pointing to our MySQL container
+          echo "Configuring wp-tests-config.php..."
+          cp $WP_TESTS_DIR/includes/wp-tests-config-sample.php $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s/youremptypassword//g" $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s/localhost/127.0.0.1/g" $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s/database_name_here/wordpress_tests/g" $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s/username_here/root/g" $WP_TESTS_DIR/wp-tests-config.php
+          sed -i "s|dirname( __FILE__ ) . '/src/'|'$WP_CORE_DIR/'|g" $WP_TESTS_DIR/wp-tests-config.php
+          
+          # Export Environment Variables for PHPUnit Execution
+          echo "WP_TESTS_DIR=$WP_TESTS_DIR" >> $GITHUB_ENV
+          echo "WP_CORE_DIR=$WP_CORE_DIR" >> $GITHUB_ENV
+
+      - name: Run Theme PHPUnit Tests
+        env:
+          WP_TESTS_DIR: ${{ env.WP_TESTS_DIR }}
+        run: |
+          # Execute PHPUnit unit test suites
+          vendor/bin/phpunit

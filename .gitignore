@@ -1,0 +1,22 @@
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer (dependencies should be installed via composer, not tracked in git)
+/vendor/
+
+# PHPUnit Coverage XML / Cache
+.phpunit.result.cache
+.phpunit.cache/
+/coverage/
+
+# Local WordPress environment or test temp files
+/wordpress/
+/wordpress-tests-lib/
+wp-tests-config.php
