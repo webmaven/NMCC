@@ -4,12 +4,15 @@
   "description": "JavaScript and automated testing for the NMCC WordPress Block Theme.",
   "main": "assets/js/editor.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "dev": "concurrently -k -s first \"php -S 127.0.0.1:8000 -t .wordpress_local\" \"browser-sync start --proxy '127.0.0.1:8000' --files 'theme.json, templates/**/*.html, parts/**/*.html, assets/**/*.css, assets/**/*.js, *.php'\""
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/preset-env": "^7.20.0",
     "babel-jest": "^29.3.0",
+    "browser-sync": "^3.0.4",
+    "concurrently": "^10.0.3",
     "jest": "^29.3.0"
   }
 }

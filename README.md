@@ -101,12 +101,28 @@ A gorgeous editorial layout highlighting a Cherokee cultural quote (*ᏗᏣᏓ�
 
 ## 🛠️ Local Development & Testing Suite
 
-The theme features a comprehensive automated testing suite to verify structural integrity, schema compliance, and code correctness before deployment.
+The theme features a comprehensive automated testing suite and an optimized local live-reload design environment.
+
+### 💻 Local Design & Live-Reload Server
+
+To see your design changes instantly in the browser without manual refreshing:
+
+1. **Setup WordPress locally (One-time only):**
+   Downloads WordPress Core, configures a lightweight SQLite database, and symlinks our active theme folder:
+   ```bash
+   python3 bin/setup-wp.py
+   ```
+2. **Start the Live-Reload Development Server:**
+   Launches the local SQLite PHP server and starts BrowserSync concurrently to watch all files, opening your browser at `http://localhost:3000`:
+   ```bash
+   npm run dev
+   ```
+Now, whenever you edit design tokens (`theme.json`), stylesheets (`assets/css/**/*.css`), block templates (`templates/**/*.html`), or Gutenberg editor scripts, BrowserSync will **instantly inject styles or hard-reload the browser** automatically!
 
 ### Prerequisites
-Make sure you have Node.js and Python 3 installed. Run the dependency installations:
+Make sure you have Node.js, Python 3, and PHP installed. Run the dependency installations:
 ```bash
-# Install Node/Jest dependencies for JS testing
+# Install Node, Jest, and BrowserSync dependencies
 npm install
 
 # Install Composer dependencies for PHPUnit testing
